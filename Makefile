@@ -1,5 +1,5 @@
 lab.www: PHONY
-	cd lab.src; ../bin/gen
+	cd lab.src; ../bin/gen -b "." -d ../lab.www
 
 deploy: PHONY
 	cd lab.src; ../bin/gen -d ~/proj.lab/www/lab.sra.uni-hannover.de/
