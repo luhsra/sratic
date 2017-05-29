@@ -1,5 +1,8 @@
-SRAtic -The static website generator for academic institutions
---------------------------------------------------------------
+---
+id: main
+title: SRAtic -The static website generator for academic institutions
+---
+# {{ page.title }} #
 
 Principles:
 
