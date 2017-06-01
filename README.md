@@ -85,6 +85,11 @@ make life and maintainability of websites easier.
   Works like the !include statement, but reads in bibtex data. For a
   detailed information on !bibtex, see the corresponding section.
 
+- `!path <filename>` \
+  Generates a full path that starts with /. For example, if we use
+  `!path foo` in `/Lehre/L_KHP`, then the constructor will expand to
+  `/Lehre/L_KHP/foo`.
+
 ## Objects and schema checking ##
 
 First of all, an object can live everywhere in the data structure that
