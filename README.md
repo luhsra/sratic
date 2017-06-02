@@ -227,7 +227,22 @@ most dependencies without annotating them:
 
 ## SRAtic Package requirements ##
 
+### Debian
 - python3
 - python3-bibtexparser
 - python3-yaml
 - python3-jinja2
+- pandoc
+
+All of these are installed on the lab machines.
+
+### Installation on MacOS (with MacPorts)
+- install **python3** and related packages:
+  `sudo port install python36 py36-jinja2 py36-yaml py36-pip`
+- set **python36** as the default **python3**:
+  `sudo port select --set python3 python36` 
+- the **bibtexparser** is not included in MacPorts, so we need to install via pip:
+  `sudo pip-3.6 install bibtexparser`
+- **pandoc** is available in MacPorts, but the version 1.12 is too old. So we install it directly from http://pandoc.org/installing.html  
+
+
