@@ -205,10 +205,12 @@ most dependencies without annotating them:
 - `show.show(<OBJECT or ID>)`\
    Show a short summary of the given object according to its type.
 
-- `show.list(type, **filters)`\
+- `show.list(type, **filters, show_list=False)`\
   Iterate over all known objects of the given type and apply some
-  filtering on the objects. For different types, different filters are
-  available:
+  filtering on the objects. If an object has `show.list` set to false,
+  the object is only selected, if the argument
+  `show_list=True` is given.
+  For different types, different filters are available:
     - thesis:
         - status:     thesis is in any of the given stati
         - supervisor: the given person is one of the supervisors
@@ -240,9 +242,7 @@ All of these are installed on the lab machines.
 - install **python3** and related packages:
   `sudo port install python36 py36-jinja2 py36-yaml py36-pip`
 - set **python36** as the default **python3**:
-  `sudo port select --set python3 python36` 
+  `sudo port select --set python3 python36`
 - the **bibtexparser** is not included in MacPorts, so we need to install via pip:
   `sudo pip-3.6 install bibtexparser`
-- **pandoc** is available in MacPorts, but the version 1.12 is too old. So we install it directly from http://pandoc.org/installing.html  
-
-
+- **pandoc** is available in MacPorts, but the version 1.12 is too old. So we install it directly from http://pandoc.org/installing.html
