@@ -202,6 +202,10 @@ most dependencies without annotating them:
   Generates a link to the given object, which can either be supplied
   by its id or directly. A link c
 
+  Since linking to an object is such a common operation, we introduced
+  the non-markdown syntax of `[[<OBJECT-ID>]]` and
+  `[[<OBJECT-ID>][<TITLE>]]` as a shortcut for `nav.link()`.
+
 - `show.show(<OBJECT or ID>)`\
    Show a short summary of the given object according to its type.
 
