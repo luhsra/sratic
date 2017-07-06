@@ -10,6 +10,10 @@ deploy: PHONY
 deploy-jenkins: PHONY
 	cd lab.src; ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/ -s ../static
 
+deploy-jenkins-force: PHONY
+	cd lab.src; ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/ -s ../static --force
+
+
 doc: PHONY
 	mkdir -p doc
 	cd doc.src; ../bin/gen -d ../doc -s ../static
