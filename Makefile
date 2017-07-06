@@ -11,4 +11,7 @@ doc: PHONY
 	mkdir -p doc
 	cd doc.src; ../bin/gen -d ../doc -s ../static
 
+clean: PHONY
+	rm -rf lab.www
+
 .PHONY: PHONY
