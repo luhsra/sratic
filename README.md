@@ -63,13 +63,13 @@ mainly on the object space.
 When YAML data is read in by SRAtic, there are special operators to
 make life and maintainability of websites easier.
 
-- `!include <filename.yml>`\
+- `!include <filename.yml>`
    With the include statement, the data from
    another file can be included at exactly that position. The
    statement is then replaced with the actual data of the referenced
    yaml file.
 
-- `!splice <filename.yml>` \
+- `!splice <filename.yml>`
    This operation is very similar to the include statement, but it
    includes the referenced data into the parent of the `!splice`
    statement. It splices the data into the parent. For example, a
@@ -81,11 +81,11 @@ make life and maintainability of websites easier.
 
         -> [0, 2, 35, 2, 3]
 
-- `!bibtex <file.bib>` \
+- `!bibtex <file.bib>`
   Works like the !include statement, but reads in bibtex data. For a
   detailed information on !bibtex, see the corresponding section.
 
-- `!path <filename>` \
+- `!path <filename>`
   Generates a full path that starts with /. For example, if we use
   `!path foo` in `/Lehre/L_KHP`, then the constructor will expand to
   `/Lehre/L_KHP/foo`.
@@ -148,6 +148,32 @@ In this example, the element A, will end up with three child objects
 always use `deref()` when iterating over childrend, and that the order
 of children that are soley attached by `parent:` have a random order.
 
+## Menu Generation ##
+
+The generator generates a menu for each page except the page with the
+ID `main`. This menu generation is controlled by a few attributes:
+
+1. The `menu` field is a list of objects or object IDs.
+2. `menu.list` is a boolean attribute that hides an page/object from the menu
+3. The `menu.append` field is a list of object/object IDs that is appended to the menu.
+
+The menu is constructed by the following rules: First we select an
+node that consitutes the main menu structure. Beginning from the
+current page:
+
+1. If the page has an explicit `menu` field or any visible child
+   (`menu.list`), use it for the menu generation
+2. Otherwise, use menu from the parent node (Can be repeated until
+   reaching `main`)
+
+After the page `P` constituting the menu for the current page `page`
+is selected, the menu is build from the following items.
+
+1. All items from `P.menu`, if existing. Otherwise, all visible items
+   from P.children are used.
+2. List all items in `P.menu.append`.
+2. List all items in `page.menu.append`.
+
 ## Publication data and bibtex entries ##
 
 As SRAtic is designed for the use in an academic environment, reading
@@ -174,6 +200,7 @@ For the bibtex entries, a few fields are used to show the publication:
 
 - doi: Used for a [DOI] link
 - pdf: Used for a [PDF] link
+- url: Used for an [URL] link, can be used for publication page (e.g., ACM DL)
 - x-projects: A comma separated list of project ids
 - x-rawdata: Used for a [Raw Data] link
 - x-slides: Used for a [Slides] link
@@ -198,7 +225,7 @@ most dependencies without annotating them:
 
 ### Text emitting macros ###
 
-- `nav.link(<OBJECT or ID>)`\
+- `nav.link(<OBJECT or ID>)`
   Generates a link to the given object, which can either be supplied
   by its id or directly. A link c
 
@@ -206,10 +233,10 @@ most dependencies without annotating them:
   the non-markdown syntax of `[[<OBJECT-ID>]]` and
   `[[<OBJECT-ID>][<TITLE>]]` as a shortcut for `nav.link()`.
 
-- `show.show(<OBJECT or ID>)`\
+- `show.show(<OBJECT or ID>)`
    Show a short summary of the given object according to its type.
 
-- `show.list(type, **filters, show_list=False)`\
+- `show.list(type, **filters, show_list=False)`
   Iterate over all known objects of the given type and apply some
   filtering on the objects. If an object has `show.list` set to false,
   the object is only selected, if the argument
@@ -226,14 +253,15 @@ most dependencies without annotating them:
 
 ### Helper Functions ###
 
-- `deref(<OBJECT or ID>)`\
+- `deref(<OBJECT or ID>)`
   Dereferences an id, if it should be necessary. If an object is given,
   it is immediatly returned. If the ID is not found, the dereference
   operator fails.
 
 ## SRAtic Package requirements ##
 
-### Debian
+### Debian ###
+
 - python3
 - python3-bibtexparser
 - python3-yaml
@@ -242,7 +270,8 @@ most dependencies without annotating them:
 
 All of these are installed on the lab machines.
 
-### Installation on MacOS (with MacPorts)
+### Installation on MacOS (with MacPorts) ###
+
 - install **python3** and related packages:
   `sudo port install python36 py36-jinja2 py36-yaml py36-pip`
 - set **python36** as the default **python3**:
