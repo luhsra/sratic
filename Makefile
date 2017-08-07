@@ -4,12 +4,15 @@ ifeq ($(UNAME_S),Darwin)
 	NPROC := $(shell sysctl hw.ncpu | awk '{print $$2}')
 else
 	NPROC := $(shell nproc)
-endif	
+endif
 
 all: lab.www
 
 lab.www: PHONY
 	cd lab.src; ../bin/gen -b "." -d ../lab.www -s ../static -j $(NPROC)
+
+dry: PHONY
+	cd lab.src; ../bin/gen -b "." -d ../lab.www -s ../static --dry -j $(NPROC)
 
 force: PHONY
 	cd lab.src; ../bin/gen -b "." -d ../lab.www -s ../static --force $(NPROC)
