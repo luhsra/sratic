@@ -199,8 +199,8 @@ automatically filled by SRAtic:
 For the bibtex entries, a few fields are used to show the publication:
 
 - doi: Used for a [DOI] link
-- pdf: Used for a [PDF] link
-- url: Used for an [URL] link, can be used for publication page (e.g., ACM DL)
+- x-pdf: Used for a [PDF] link
+- x-url: Used for an [URL] link, can be used for publication page (e.g., ACM DL)
 - x-projects: A comma separated list of project ids
 - x-rawdata: Used for a [Raw Data] link
 - x-slides: Used for a [Slides] link
