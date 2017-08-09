@@ -127,7 +127,7 @@ Possible rules are:
 
 ## Parent-child relations between pages ##
 
-Objects can be assoicated in a parent-child relationship. This is
+Objects can be associated in a parent-child relationship. This is
 especially useful for hierarchical structures, like page objects that
 should be structured in a tree. A parent-child relationship can either
 be established, by directly defining an object at the parent, by
@@ -145,8 +145,8 @@ object.
 
 In this example, the element A, will end up with three child objects
 [`B`, `D`, `C`], in that order. Please be aware, that you should
-always use `deref()` when iterating over childrend, and that the order
-of children that are soley attached by `parent:` have a random order.
+always use `deref()` when iterating over children, and that the order
+of children that are solely attached by `parent:` have a random order.
 
 ## Menu Generation ##
 
@@ -158,7 +158,7 @@ ID `main`. This menu generation is controlled by a few attributes:
 3. The `menu.append` field is a list of object/object IDs that is appended to the menu.
 
 The menu is constructed by the following rules: First we select an
-node that consitutes the main menu structure. Beginning from the
+node that constitutes the main menu structure. Beginning from the
 current page:
 
 1. If the page has an explicit `menu` field or any visible child
@@ -193,7 +193,7 @@ automatically filled by SRAtic:
 - `pub.title`: Title from the bibtex entry
 - `pub.projects`: Equal to `pub.bibtex.projects`
 - `pub.bibtex`: The bibtex object
-- `pub.bibtex.projects`: Is automatically splitted and stripped at commas
+- `pub.bibtex.projects`: Is automatically split and stripped at commas
 - `pub.bibtex.bibtex`: The string representation of the raw bibtex entry
 
 For the bibtex entries, a few fields are used to show the publication:
@@ -218,7 +218,7 @@ most dependencies without annotating them:
 - Every page depends on `data/root.yml`
 - Dependencies resulting from `!include`, `!splice`, and other
   constructors are properly tracked.
-- Pages can explicilty use the `depends: LIST` key in their YAML
+- Pages can explicitly use the `depends: LIST` key in their YAML
   preface to annotate another dependency.
 
 ## Reference and Cheatsheet ##
