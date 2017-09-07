@@ -15,7 +15,7 @@ dry: PHONY
 	cd lab.src; ../bin/gen -b "." -d ../lab.www --dry -j $(NPROC)
 
 force: PHONY
-	cd lab.src; ../bin/gen -b "." -d ../lab.www --force $(NPROC)
+	cd lab.src; ../bin/gen -b "." -d ../lab.www --force 
 
 doc: PHONY
 	mkdir -p doc
