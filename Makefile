@@ -26,10 +26,10 @@ clean: PHONY
 
 # The following targets are used only by automated jenkins builds
 deploy-jenkins: PHONY
-	cd lab.src; ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/ -s ../static
+	cd lab.src; ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/
 
 deploy-jenkins-force: PHONY
-	cd lab.src; ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/ -s ../static --force
+	cd lab.src; ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/ --force
 
 
 
