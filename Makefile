@@ -9,17 +9,17 @@ endif
 all: lab.www
 
 lab.www: PHONY
-	cd lab.src; ../bin/gen -b "." -d ../lab.www -s ../static -j $(NPROC)
+	cd lab.src; ../bin/gen -b "." -d ../lab.www -j $(NPROC)
 
 dry: PHONY
-	cd lab.src; ../bin/gen -b "." -d ../lab.www -s ../static --dry -j $(NPROC)
+	cd lab.src; ../bin/gen -b "." -d ../lab.www --dry -j $(NPROC)
 
 force: PHONY
-	cd lab.src; ../bin/gen -b "." -d ../lab.www -s ../static --force $(NPROC)
+	cd lab.src; ../bin/gen -b "." -d ../lab.www --force $(NPROC)
 
 doc: PHONY
 	mkdir -p doc
-	cd doc.src; ../bin/gen -d ../doc -s ../static
+	cd doc.src; ../bin/gen -d ../doc
 
 clean: PHONY
 	rm -rf lab.www
