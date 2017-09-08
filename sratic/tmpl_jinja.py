@@ -3,11 +3,6 @@ import operator
 import re
 import logging
 
-def create_jinja2_env(template_dir):
-    env = SRAticEnvironment(template_dir)
-
-    return env
-
 class SRAticEnvironment(Environment):
     def __init__(self, template_dir):
         Environment.__init__(self, trim_blocks=True,
