@@ -19,8 +19,38 @@ class SRAticEnvironment(Environment):
         self.globals["__id"] = id
         self.globals["operator"] = operator
 
+        self.kv_store = {}
+        self.globals['get'] = self.__kv_store_get
+        self.globals['set'] = self.__kv_store_set
+
+
+    def __kv_store_set(self, **kwargs):
+        self.kv_store.update(kwargs)
+
+    def __kv_store_get(self, key):
+        return self.kv_store[key]
 
     def expand(self, text, **kwargs):
+        # Some SRAtic specific markups
+        # 1. Internal links
+        def internal_link(m):
+            link = m.group(1)
+            title = m.group(2)
+            if title:
+                return "{{ nav.link(%s, title=%s) }}"%(
+                    repr(link), repr(title)
+                )
+            return "{{ nav.link(%s) }}"%(repr(link))
+        text = re.sub('\[\[([^\[\]].*?)\](?:\[([^\[\]].*?)\])?\]', internal_link,
+                         text)
+
+        # 2. We always include show and navication, as it is used so often
+        text = "{% import 'show.jinja'  as show %}" + \
+               "{% import 'navigation.jinja'  as nav %}" + \
+               "{% set page = get('current_page') %}" + \
+               "{% set R = get('relative_root') %}" + \
+               text
+
         template = self.from_string(text)
         return template.render(**kwargs)
 
@@ -33,7 +63,7 @@ class SRAticEnvironment(Environment):
 
     def __warn(self, text, **kwargs):
         logging.warning(text, **kwargs)
-        return ""
+        return text
 
     def __shorten(self, elem, count):
         assert type(elem) is str
