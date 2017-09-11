@@ -49,7 +49,7 @@ class SRAticEnvironment(Environment):
             ret = "{{ nav.link(%s, link_attr=%s, title_attr=%s, title=%s) }}"%(
                     repr(obj), repr(link_attr), repr(title_attr), repr(title)
             )
-            logging.info(ret)
+            # logging.info(ret)
 
             return ret
 

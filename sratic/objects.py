@@ -1,5 +1,6 @@
 from .schema import check_schema
 import os.path as osp
+import datetime
 
 def wrap_list(lst):
     if not lst:
@@ -207,8 +208,10 @@ class ObjectStore:
                       author=None,
                       own=None,
                       bibtype=None,
-                      show_list=False):
+                      maxage=None,
+                      show_list=False,):
         ret = []
+
         for obj in self.objects.values():
             if self.isA(obj, type) \
             and (obj.get('show.list', 'true') or show_list) \
@@ -220,6 +223,10 @@ class ObjectStore:
             ) or (
                 type == 'project'
                 and (not status or obj['project-status'] in status)
+            ) or (
+                type == 'news'
+                and (not project or project in obj['related'])
+                and (not maxage or (datetime.date.today() - obj['date']).days < maxage)
             ) or (
                 type == 'publication'
                 and (not project or project in obj['projects'])
@@ -236,6 +243,8 @@ class ObjectStore:
             if self.isA(x, 'publication'):
                 year =  int(x['bibtex'].get('year', '0'))
                 return str(10000-year) + x.get('title', '') + x['id']
+            if self.isA(x, 'news'):
+                return (x['date'], x['title'])
             if 'id' in x:
                 return x['id']
             return str(x)
