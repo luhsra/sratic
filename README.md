@@ -231,7 +231,9 @@ most dependencies without annotating them:
 
   Since linking to an object is such a common operation, we introduced
   the non-markdown syntax of `[[<OBJECT-ID>]]` and
-  `[[<OBJECT-ID>][<TITLE>]]` as a shortcut for `nav.link()`.
+  `[[<OBJECT-ID>][<TITLE>]]` as a shortcut for `nav.link()`. If the
+  href and the title should come from other attributes, you can use
+  `[[<OBJECT-ID>.<LINK_ATTR>][TITLE_ATTR]]`
 
 - `show.show(<OBJECT or ID>)`
    Show a short summary of the given object according to its type.

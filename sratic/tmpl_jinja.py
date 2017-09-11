@@ -33,15 +33,28 @@ class SRAticEnvironment(Environment):
     def expand(self, text, **kwargs):
         # Some SRAtic specific markups
         # 1. Internal links
+
         def internal_link(m):
-            link = m.group(1)
-            title = m.group(2)
-            if title:
-                return "{{ nav.link(%s, title=%s) }}"%(
-                    repr(link), repr(title)
-                )
-            return "{{ nav.link(%s) }}"%(repr(link))
-        text = re.sub('\[\[([^\[\]].*?)\](?:\[([^\[\]].*?)\])?\]', internal_link,
+            obj = m.group(1)
+            if m.group(2):
+                link_attr = m.group(2)[1:] # Strip the dot
+            else:
+                link_attr = None
+            if m.group(3) and m.group(3)[0] == ".":
+                title_attr = m.group(3)[1:]
+                title = None
+            else:
+                title = m.group(3)
+                title_attr = None
+            ret = "{{ nav.link(%s, link_attr=%s, title_attr=%s, title=%s) }}"%(
+                    repr(obj), repr(link_attr), repr(title_attr), repr(title)
+            )
+            logging.info(ret)
+
+            return ret
+
+        # [[OBJECT(.ATTR)?]([TITLE or .TITLE_ATTR])?]
+        text = re.sub('\[\[([^\[\].]*?)((?:\.[^\[\]]*?)?)\](?:\[([^\[\]].*?)\])?\]', internal_link,
                          text)
 
         # 2. We always include show and navication, as it is used so often
