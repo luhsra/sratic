@@ -212,6 +212,9 @@ class YAMLDataFactory:
 
     def __resolve_path(self, fragment, parent, key):
         fn, stmt_fn = parent[key][1]
+        if fn[0] == "/":
+            parent[key] = fn
+            return
         fn = osp.join(osp.dirname(stmt_fn), fn)
         fn = osp.relpath(fn, '.')
         parent[key] = "/" + fn
