@@ -240,6 +240,8 @@ class ObjectStore:
 
     def sorted(self, elem, **kwargs):
         def sort_key(x):
+            if type(x) is not dict:
+                return x
             if self.isA(x, 'publication'):
                 year =  int(x['bibtex'].get('year', '0'))
                 return str(10000-year) + x.get('title', '') + x['id']
