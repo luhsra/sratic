@@ -39,10 +39,10 @@ class SRAticEnvironment(Environment):
             else:
                 title = m.group(3)
                 title_attr = None
-            ret = "{{ nav.link(%s, link_attr=%s, title_attr=%s, title=%s) }}"%(
-                    repr(obj), repr(link_attr), repr(title_attr), repr(title)
+            ret = "{{ nav.link(%s, title=%s, link_attr=%s, title_attr=%s) }}"%(
+                    repr(obj), repr(title), repr(link_attr), repr(title_attr)
             )
-            # logging.info(ret)
+            #logging.info(ret)
 
             return ret
 
