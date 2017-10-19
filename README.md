@@ -8,7 +8,7 @@ title: SRAtic - The static website generator for academic institutions
 
 - Everything that is a page or that has an id field is an object!
 - Every object that has a type is validated against the schema (data/schema.yml).
-- All objects have a unique ID.
+- All objects have an unique ID.
 - Objects have fields.
 
 SRAtic is a static website generator, that is developed to generate
@@ -37,7 +37,7 @@ As an example, let's examine the source code of this page:
     # {{ page.title }} #
     {% endraw%}
 
-This page is saved, as `index.md` and has a YAML preface, which
+This page is saved as `index.md` and has a YAML preface, which
 defines data that is valid for the processing of this concrete
 document. This page has the id `main` and defines a variable title. In
 the body of the page, the title is referenced by `page.title` in the
@@ -46,7 +46,7 @@ all variables from the diretory-wide `variables.yml` file are
 available from the `page.` namespace.
 
 However, this page and its data is also available from the object
-namespace, where we man retrieve it by the `deref` function:
+namespace, where we can retrieve it by the `deref` function:
 
     {% raw %}{{ deref('main').title }}{% endraw %}
 
@@ -74,7 +74,8 @@ make life and maintainability of websites easier.
    includes the referenced data into the parent of the `!splice`
    statement. It splices the data into the parent. For example, a
    !splice operation within a list does splice the referenced data,
-   which must be also an list into the containing list. The mechanism also works for dictionaries.
+   which must be also a list into the containing list. The mechanism
+   also works for dictionaries.
 
         root.yml: [0, !splice "a.yml", 2, 3]
         a.yml: [2, 35]
@@ -102,7 +103,7 @@ list of dictionaries contains three objects `a`, `b`, and `c`:
     - id: a
     - id: b
     - id: c
-      type foo
+      type: foo
 
 Furthermore, an object can have a type. Then type checking is employed
 against that specific object. In our example, object `c` is of type
