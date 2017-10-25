@@ -8,7 +8,7 @@ endif
 
 all: lab.src/data/bib lab.www
 
-# The Bibilography comes from a github bib repository, that is public.
+# The Bibilography comes from a github bib repository that is public.
 # The first rule indicates that init is automatically cloned, if it
 # was not cloned beforehand.
 #
