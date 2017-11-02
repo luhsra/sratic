@@ -175,6 +175,15 @@ is selected, the menu is build from the following items.
 2. List all items in `P.menu.append`.
 2. List all items in `page.menu.append`.
 
+### Submenu ###
+
+Within a page and its children a submenu can be generated. This submenu
+is attached to the active menu element on the page. If the page has no
+separat submenu, but one of its parents, the first found submenu will
+be shown, beginning from the actual page.
+
+A submenu can be attached with the `submenu` key.
+
 ## Publication data and bibtex entries ##
 
 As SRAtic is designed for the use in an academic environment, reading

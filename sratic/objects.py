@@ -158,6 +158,8 @@ class ObjectStore:
                 if self.has_menu_children(p.data):
                     page.sources.add(p.path)
                     break
+                if 'submenu' in p.data:
+                    page.sources.add(p.path)
                 # Search in parent
                 if 'parent' not in p.data:
                     break
@@ -184,6 +186,24 @@ class ObjectStore:
                 break
         return False
 
+    def get_submenu(self, page):
+        """Search for the first parent with a submenu.
+
+        Return the submenu as a list. If no such page is found, an empty list
+        is returned.
+
+        Arguments:
+        page -- the current page
+        """
+        p = self.deref(page)
+        while p:
+            if 'submenu' in p:
+                return p['submenu']
+            if p.get('parent') in self.objects:
+                p = self.deref(p.get('parent'))
+            else:
+                break
+        return []
 
     def deref(self, elem):
         """Dereferences a object, if it should be necessary"""
