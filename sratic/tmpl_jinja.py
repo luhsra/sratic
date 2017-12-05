@@ -2,6 +2,7 @@ from jinja2 import Environment, FileSystemLoader
 import operator
 import re
 import logging
+import os
 
 class SRAticEnvironment(Environment):
     def __init__(self, template_dir):
@@ -101,5 +102,5 @@ class SRAticEnvironment(Environment):
         for asset in self.assets:
             if os.path.basename(asset) == name:
                 assert found is None, "Asset %s is unambigous (%s,%s)" %(name, found, asset)
-            found = asset
+                found = asset
         return found
