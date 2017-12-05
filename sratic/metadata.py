@@ -13,6 +13,8 @@ class Constructors:
     SPLICE  = 2
     LOAD_BIBTEX = 3
     PATH = 4
+    MARKDOWN = 5
+
 
     handlers = {}
 
