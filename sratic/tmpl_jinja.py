@@ -23,6 +23,10 @@ class SRAticEnvironment(Environment):
         # kept intact at all times. It can only be cleared on each new page.
         self.globals['page'] = {}
 
+        # A list of all copied and known assets
+        self.assets = []
+        self.globals['__asset'] = self.__asset
+
     def expand(self, text, **kwargs):
         # Some SRAtic specific markups
         # 1. Internal links
@@ -90,3 +94,12 @@ class SRAticEnvironment(Environment):
 
     def __search(self,value, pattern='', ignorecase=False):
         return self.__regex(value, pattern, ignorecase, 'search')
+
+
+    def __asset(self,name):
+        found = None
+        for asset in self.assets:
+            if os.path.basename(asset) == name:
+                assert found is None, "Asset %s is unambigous (%s,%s)" %(name, found, asset)
+            found = asset
+        return found
