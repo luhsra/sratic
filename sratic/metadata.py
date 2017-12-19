@@ -32,7 +32,10 @@ class YAMLFragment:
         self.data  = None
         self.path  = None   # Absolute path to source file
 
-    def __include_filename(self,data, fn):
+    def __repr__(self):
+        return "YAMLFragment('{}')".format(self.path)
+
+    def __include_filename(self, data, fn):
         if type(data) is list:
             for elem in data:
                 self.__include_filename(elem, fn)
@@ -41,7 +44,6 @@ class YAMLFragment:
                 self.__include_filename(data[elem], fn)
         if type(data) is tuple and data and data[0] in Constructors.handlers:
             data[1].append(fn)
-
 
     def load_from_file(self, filename):
         """Loads the data from the given source file into this YAML Fragment"""
