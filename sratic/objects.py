@@ -231,8 +231,9 @@ class ObjectStore:
                       maxage=None,
                       show_list=False,):
         ret = []
+        captured = set()
 
-        for obj in self.objects.values():
+        for _id, obj in self.objects.items():
             if self.isA(obj, type) \
             and (obj.get('show.list', 'true') or show_list) \
             and ((
@@ -254,8 +255,12 @@ class ObjectStore:
                 and (not bibtype or obj['bibtex']['ENTRYTYPE'].lower() in wrap_list(bibtype))
                 and (not author or (author in (obj['bibtex'].get('authors',[]) \
                                             + obj['bibtex'].get('editors',[]))))
+            ) or (
+                type == 'person'
             )):
-                ret.append(obj)
+                if id(obj) not in captured:
+                    ret.append(obj)
+                    captured.add(id(obj))
         return self.sorted(ret)
 
     def sorted(self, elem, **kwargs):
