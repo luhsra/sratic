@@ -2,6 +2,7 @@
 
 import yaml
 import re
+import logging
 import os.path as osp
 from .metadata import Constructors
 import bibtexparser
