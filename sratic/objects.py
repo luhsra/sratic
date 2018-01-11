@@ -205,6 +205,15 @@ class ObjectStore:
                 break
         return []
 
+    @staticmethod
+    def get_rfc3339_timestamp():
+        """Return an RFC 3339 timestamp.
+
+        Note, this works only with Python 3.3+.
+        """
+        now = datetime.datetime.now(datetime.timezone.utc).astimezone()
+        return now.isoformat()
+
     def deref(self, elem):
         """Dereferences a object, if it should be necessary"""
         if type(elem) is dict:
