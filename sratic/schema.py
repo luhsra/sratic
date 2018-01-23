@@ -51,6 +51,4 @@ def __check_schema(schema, obj):
 
     if schema:
         for field in obj.keys() - schema.keys():
-            if field == "baseurl":
-                continue
             logging.info("Field not in schema: %s/%s", obj['id'], field)
