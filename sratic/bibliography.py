@@ -67,8 +67,9 @@ def load_bibtex(filename, modify_data=None):
         e['id'] = 'bib:' + e['ID']
         e['type'] = 'bibtex'
 
-        if 'year' not in e['bibtex']:
-            logging.warning("Bibtex Entry %s has no year field",  e['id'])
+        if e.get('x-own') and 'year' not in e['bibtex']:
+            logging.error("Bibtex Entry %s has no year field but a x-own=True field",  e['id'])
+            sys.exit(-1)
 
         # ATTENTION: We ignore proceedings entries
         if e['ENTRYTYPE'].lower() == 'proceedings':
