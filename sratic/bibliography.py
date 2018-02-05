@@ -65,6 +65,12 @@ def load_bibtex(filename, modify_data=None):
         db.entries = [ee]
         e['bibtex'] = bibtexparser.dumps(db).strip()
         e['id'] = 'bib:' + e['ID']
+
+        # As we have to use the type field in our .bib files, but we
+        # also have to define the 'type' field in our objects, we
+        # rename the field before we override it.
+        if 'type' in e:
+            e['thesistype'] = e['type']
         e['type'] = 'bibtex'
 
         if e.get('x-own') and 'year' not in e['bibtex']:
