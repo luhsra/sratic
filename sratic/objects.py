@@ -141,6 +141,11 @@ class ObjectStore:
             aliases = []
             if self.isA(obj, 'person'):
                 aliases.append(obj['name'])
+
+            # Permalink aliases provoke an object alias
+            if 'permalink.alias' in obj:
+                aliases.append(obj['permalink.alias'])
+
             for id in aliases:
                 if id in objects:
                     assert obj == objects[id],\
@@ -218,8 +223,10 @@ class ObjectStore:
         """Dereferences a object, if it should be necessary"""
         if type(elem) is dict:
             return elem
-        else:
+        elif elem in self.objects:
             return self.objects[elem]
+        else:
+            raise RuntimeError("Object '{}' not found".format(elem))
 
     def isA(self, obj, Type):
         assert type(Type) is str
