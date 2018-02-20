@@ -1,6 +1,8 @@
 from .schema import check_schema
 import os.path as osp
 import datetime
+import hashlib
+import base64
 
 def wrap_list(lst):
     if not lst:
@@ -13,6 +15,20 @@ class ObjectStore:
     def __init__(self):
         self.objects = {}
         self.page_objects = {}
+
+        # To speed up things
+        self.__object_hash = dict()
+        # We keep a pointer to the current set of referenced objects
+        self.__referenced_objects = None
+
+    def set_referenced_objects(self, x):
+        """The user can set a dictionary that is filled with id -> hash while using deref and object.list()"""
+        self.__referenced_objects = x
+
+    def __reference(self, obj):
+        """Mark the object as referenced"""
+        if self.__referenced_objects is not None and obj.get('id'):
+            self.__referenced_objects.add(obj['id'])
 
     def crawl_pages(self, schema, data_dir, pages):
         # The dict that maps every object id to its object
@@ -35,6 +51,7 @@ class ObjectStore:
             # index.
             for obj in page.objects():
                 objects[obj['id']] = obj
+                obj['__file__'] = page.path
             # Step 1.2: build an index of all page yaml fragments
             page_objects[page.data['id']] = page
 
@@ -52,6 +69,7 @@ class ObjectStore:
         for obj in data_dir.objects():
             assert obj['id'] not in objects, "Duplicate Object ID (%s)" %(obj['id'])
             objects[obj['id']] = obj
+            obj['__file__'] = data_dir.path
 
         # Step 3: Generate publication object, if they are not present.
         for obj in list(objects.values()):
@@ -60,7 +78,8 @@ class ObjectStore:
                     page = objects[obj['ID']]
                 else:
                     # Generate a surrogate publication object
-                    page = {'id': obj['ID'], 'type': 'publication' }
+                    page = {'id': obj['ID'], 'type': 'publication',
+                            '__file__': obj['__file__']}
                     obj['__surrogate_object'] = page
                     objects[page['id']] = page
 
@@ -222,9 +241,12 @@ class ObjectStore:
     def deref(self, elem, fail=True):
         """Dereferences a object, if it should be necessary"""
         if type(elem) is dict:
+            self.__reference(elem)
             return elem
         elif elem in self.objects:
-            return self.objects[elem]
+            obj = self.objects[elem]
+            self.__reference(obj)
+            return obj
         elif fail:
             raise RuntimeError("Object '{}' not found".format(elem))
 
@@ -280,6 +302,8 @@ class ObjectStore:
                 if id(obj) not in captured:
                     ret.append(obj)
                     captured.add(id(obj))
+        for x in ret:
+            self.__reference(x)
         return self.sorted(ret)
 
     def sorted(self, elem, **kwargs):
