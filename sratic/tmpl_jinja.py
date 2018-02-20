@@ -17,7 +17,6 @@ class SRAticEnvironment(Environment):
         self.filters["shorten"] = self.__shorten
         self.globals["str"] = repr
         self.globals["wrap_list"] = self.wrap_list
-        self.globals["__id"] = id
         self.globals["operator"] = operator
 
         # This dict must never be overriden, the reference must be

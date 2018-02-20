@@ -33,6 +33,16 @@ class ObjectStore:
         if self.__referenced_objects is not None and obj.get('id'):
             self.__referenced_objects.add(obj['id'])
 
+    def canonical_id(self, obj):
+        """Canonical ascii-only id for use in CSS classes"""
+        ret=""
+        for c in obj['id']:
+            if c.isalpha():
+                ret += c
+            else:
+                ret += str(ord(c))
+        return ret
+
     def crawl_pages(self, schema, data_dir, pages):
         # The dict that maps every object id to its object
         # ID -> object
