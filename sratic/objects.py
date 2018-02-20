@@ -4,6 +4,7 @@ import datetime
 import hashlib
 import base64
 import re
+import logging
 
 def wrap_list(lst):
     if not lst:
@@ -15,7 +16,6 @@ def wrap_list(lst):
 class ObjectStore:
     def __init__(self):
         self.objects = {}
-        self.page_objects = {}
 
         self.object_constructors = {
             'lecture': self.__init__lecture,
@@ -197,6 +197,8 @@ class ObjectStore:
                     objects[id] = obj
 
         self.objects = objects
+        logging.info("%d pages, %d objects", len(page_objects),
+                     len(self.objects))
 
         # Step 9: For each page, find the page that holds its menu and
         # add an according dependency
