@@ -98,7 +98,9 @@ class YAMLFragment:
                     yield k
 
         elif type(x) is dict:
-            if 'id' in x:
+            if 'id' in x or 'type' in x:
+                if not 'id' in x:
+                    x['id'] = self.path + "-" + str(id(x))
                 yield prefix, x
 
             for key, elem in x.items():
