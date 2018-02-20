@@ -219,13 +219,13 @@ class ObjectStore:
         now = datetime.datetime.now(datetime.timezone.utc).astimezone()
         return now.isoformat()
 
-    def deref(self, elem):
+    def deref(self, elem, fail=True):
         """Dereferences a object, if it should be necessary"""
         if type(elem) is dict:
             return elem
         elif elem in self.objects:
             return self.objects[elem]
-        else:
+        elif fail:
             raise RuntimeError("Object '{}' not found".format(elem))
 
     def isA(self, obj, Type):
@@ -238,20 +238,23 @@ class ObjectStore:
 
 
     def object_list(self, type,
-                      status=None,
-                      supervisor=None,
-                      project=None,
-                      author=None,
-                      own=None,
-                      bibtype=None,
-                      maxage=None,
-                      show_list=False,):
+                    filter=None,
+                    status=None,
+                    supervisor=None,
+                    project=None,
+                    author=None,
+                    own=None,
+                    bibtype=None,
+                    maxage=None,
+                    show_list=False,
+                    ):
         ret = []
         captured = set()
 
         for _id, obj in self.objects.items():
             if self.isA(obj, type) \
             and (obj.get('show.list', 'true') or show_list) \
+            and (not filter or eval(filter)(obj)) \
             and ((
                 type == 'thesis'
                 and (not status or obj['thesis-status'] in status)
