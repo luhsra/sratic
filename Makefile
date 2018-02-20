@@ -6,7 +6,7 @@ else
 	NPROC := $(shell nproc)
 endif
 
-all: lab.src/data/bib lab.www
+all: src/data/bib www
 
 # The Bibilography comes from a github bib repository that is public.
 # The first rule indicates that init is automatically cloned, if it
@@ -14,35 +14,35 @@ all: lab.src/data/bib lab.www
 #
 # The sync rule is established to explicitly sync the external. This
 # is done also in the jenkins rules.
-lab.src/data/bib:
+src/data/bib:
 	./init
 
 sync: PHONY
 	./init
 
 
-lab.www: PHONY
-	cd lab.src; ../bin/gen -b "." -d ../lab.www -j $(NPROC)
+www: PHONY
+	cd src; ../bin/gen -b "." -d ../www -j $(NPROC)
 
 dry: PHONY
-	cd lab.src; ../bin/gen -b "." -d ../lab.www --dry -j $(NPROC)
+	cd src; ../bin/gen -b "." -d ../www --dry -j $(NPROC)
 
 force: sync PHONY
-	cd lab.src; ../bin/gen -b "." -d ../lab.www --force
+	cd src; ../bin/gen -b "." -d ../www --force
 
 doc: PHONY
 	mkdir -p doc
-	cd doc.src; ../bin/gen -d ../doc
+	cd src; ../bin/gen -d ../doc
 
 clean: PHONY
-	rm -rf lab.www
+	rm -rf www
 
 # The following targets are used only by automated jenkins builds
 deploy-jenkins: sync PHONY
-	cd lab.src; ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/
+	cd src; ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/
 
 deploy-jenkins-force: sync PHONY
-	cd lab.src; ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/ --force
+	cd src; ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/ --force
 
 
 
