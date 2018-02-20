@@ -2,7 +2,7 @@ import logging
 import datetime
 
 
-def check_schema(schema_document, obj):
+def check_schema(schema_document, obj, objects):
     """Validates a object  against the schema definition"""
     Type = obj.get('type')
     # If it has no type, we just can yes
@@ -10,15 +10,10 @@ def check_schema(schema_document, obj):
         return True
 
     # Generate a combined schema
-    if type(Type) is list:
-        schema = {}
-        for x in Type:
-            schema.update(schema_document.data[x])
-    else:
-        schema = schema_document.data[Type]
-    return __check_schema(schema, obj)
+    schema = {}
+    for x in Type:
+        schema.update(schema_document.data[x])
 
-def __check_schema(schema, obj):
     for field,rules in schema.items():
         if rules.get('required'):
             assert field in obj,\
@@ -30,19 +25,15 @@ def __check_schema(schema, obj):
                 field, obj['id'])
         if field not in obj:
             continue
-        if rules.get('type'):
-            t = {'int': int,
-                 'bool': bool,
-                 'boolean': bool,
-                 'str': str,
-                 'string':str,
-                 'date': datetime.date,
-                 'float': float,
-                 'url': str,
-                 'list': list,
-                 'dict': dict}[rules.get('type')]
-            assert type(obj[field]) is t,\
-                "Field '%s' has wrong type: %s != %s" %(field, t, type(obj[field]))
+        if 'type' in rules:
+            ok, value = type_check_and_resolve(rules['type'],
+                                               obj[field],
+                                               objects)
+            assert ok, \
+                "Field '%s' has wrong type: %s != %s" %(field, rules['type'],
+                                                        repr(obj[field]))
+            if rules.get('deref'):
+                obj[field] = value
 
         if rules.get('enum'):
             assert obj[field] in rules['enum'],\
@@ -52,3 +43,28 @@ def __check_schema(schema, obj):
     if schema:
         for field in obj.keys() - schema.keys():
             logging.info("Field not in schema: %s/%s", obj['id'], field)
+
+def type_check_and_resolve(pattern, value, objects):
+    if type(pattern) is str:
+        # Base types
+        base_types = {'int': int,
+                      'bool': bool,
+                      'boolean': bool,
+                      'str': str,
+                      'string':str,
+                      'date': datetime.date,
+                      'float': float,
+                      'url': str,
+                      'list': list,
+                      'dict': dict}
+        if pattern in base_types:
+            return (type(value) is base_types[pattern],
+                    value)
+        elif pattern.startswith('object.'):
+            T = pattern[len('object.'):]
+            deref = objects.deref(value, fail=False)
+            if not deref:
+                logging.error("Dangling Reference!")
+                return False
+            return (T in deref['type'], deref)
+    return (False, value)

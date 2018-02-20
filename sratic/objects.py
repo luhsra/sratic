@@ -146,7 +146,7 @@ class ObjectStore:
         # Step 6: Validate the schema for all objects, we are aware of.
         for obj in objects.values():
             # Do a schema validation for the page data
-            check_schema(schema, obj)
+            check_schema(schema, obj, self)
 
 
         # Step 7: Resolve and propagate all dependencies between objects.
@@ -294,6 +294,7 @@ class ObjectStore:
                     bibtype=None,
                     maxage=None,
                     show_list=False,
+                    lecture=None,
                     ):
         ret = []
         captured = set()
