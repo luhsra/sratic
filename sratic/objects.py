@@ -3,6 +3,7 @@ import os.path as osp
 import datetime
 import hashlib
 import base64
+import re
 
 def wrap_list(lst):
     if not lst:
@@ -16,8 +17,10 @@ class ObjectStore:
         self.objects = {}
         self.page_objects = {}
 
-        # To speed up things
-        self.__object_hash = dict()
+        self.object_constructors = {
+            'lecture': self.__init__lecture,
+        }
+
         # We keep a pointer to the current set of referenced objects
         self.__referenced_objects = None
 
@@ -89,6 +92,17 @@ class ObjectStore:
                     page['title'] = obj['title']
                 # Extract list of projects from bibtex file
                 page['projects'] = list(filter(None, [x.strip() for x in obj.get('x-projects','').split(",")]))
+
+        # Step 4: Adjust types and run constructors
+        for obj in objects.values():
+            # Wrap type field
+            if type(obj['type']) == str:
+                obj['type'] = [obj['type']]
+
+            for T in obj['type']:
+                if T in self.object_constructors:
+                    self.object_constructors[T](obj)
+
 
         # Step 5: Assemble the sitemap and the parent->child relation
         for obj in objects.values():
@@ -210,6 +224,17 @@ class ObjectStore:
                 break
         return False
 
+    @staticmethod
+    def __init__lecture(obj):
+        """For a lecture we fill semester, series and parent from the ID"""
+        regex = '^lehre-([ws]s[0-9]{2})-([A-Z_]+)$'
+        m = re.match(regex, obj['id'])
+        assert m, "Invalid id for lecture, use: " + regex
+        semester, series = m.groups()
+        obj['semester'] = semester
+        obj['series'] = series
+        obj['parent'] = 'lehre-' + semester
+
     def get_submenu(self, page):
         """Search for the first parent with a submenu.
 
@@ -298,7 +323,11 @@ class ObjectStore:
                                             + obj['bibtex'].get('editors',[]))))
             ) or (
                 type == 'person'
-            )):
+            ) or (
+                type == 'evaluation'
+                and (not lecture or lecture == obj['lecture']['series'])
+            )
+            ):
                 if id(obj) not in captured:
                     ret.append(obj)
                     captured.add(id(obj))
