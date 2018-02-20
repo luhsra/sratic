@@ -64,7 +64,17 @@ def type_check_and_resolve(pattern, value, objects):
             T = pattern[len('object.'):]
             deref = objects.deref(value, fail=False)
             if not deref:
-                logging.error("Dangling Reference!")
-                return False
+                logging.error("Dangling Reference! {}".format(value))
+                return (False, value)
             return (T in deref['type'], deref)
+        else:
+            raise RuntimeError("Invalid schema type pattern: " + pattern)
+    if type(pattern) is list:
+        assert len(pattern) == 1, 'Wrong type definition'
+        if type(value) not in (list,tuple):
+            return (False, value)
+        ret_list = [type_check_and_resolve(pattern[0], x, objects)
+                    for x in value]
+        return (all([x[0] for x in ret_list]),
+                [x[1] for x in ret_list])
     return (False, value)
