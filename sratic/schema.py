@@ -30,8 +30,10 @@ def check_schema(schema_document, obj, objects):
                                                obj[field],
                                                objects)
             assert ok, \
-                "Field '%s' has wrong type: %s != %s" %(field, rules['type'],
-                                                        repr(obj[field]))
+                "(Object %s, Field '%s') has wrong type: %s != %s" %(
+                    obj.get('id'),
+                    field, rules['type'],
+                    repr(obj[field]))
             if rules.get('deref'):
                 obj[field] = value
 
