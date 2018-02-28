@@ -235,15 +235,16 @@ most dependencies without annotating them:
 
 ### Text emitting macros ###
 
-- `nav.link(<OBJECT or ID>)`
+- `nav.link(<OBJECT or ID>, title=None, link_attr=None, title_attr=None, compact=True)`
   Generates a link to the given object, which can either be supplied
-  by its id or directly. A link c
+  by its id or directly. If the link text (`title`) is not given, it is taken by default from the object's `.title`, `.short_title` or `.name` attribute (depends on the object type).
+  Alternatevely can also specify the `title_attr` to be consulted for the link text.
 
   Since linking to an object is such a common operation, we introduced
   the non-markdown syntax of `[[<OBJECT-ID>]]` and
   `[[<OBJECT-ID>][<TITLE>]]` as a shortcut for `nav.link()`. If the
-  href and the title should come from other attributes, you can use
-  `[[<OBJECT-ID>.<LINK_ATTR>][TITLE_ATTR]]`
+  href should be taken from another attribute, you can use
+  `[[<OBJECT-ID>.<LINK_ATTR>]]`. The link text can be taken from annother attribute with `[[<OBJECT-ID>][.<TITLE_ATTR>|]`.
 
 - `show.show(<OBJECT or ID>)`
    Show a short summary of the given object according to its type.
