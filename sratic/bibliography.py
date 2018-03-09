@@ -99,6 +99,7 @@ def load_bibtex(filename, modify_data=None):
                        '\-': '',
                        '---': '––',
                        '--': '–',
+                       '$\\mu$': 'µ',
                        '\\textendash': '–',
                        '\n': ' ',
                        '\r': ' ' }
