@@ -1,14 +1,67 @@
 from jinja2 import Environment, FileSystemLoader
+from jinja2.ext import Extension
+import jinja2.nodes as nodes
+
 import operator
 import re
 import logging
 import os
+import yaml
+import io
+
+class YamlExtension(Extension):
+    # a set of names that trigger the extension.
+    tags = set(['yaml'])
+
+    def __init__(self, environment):
+        super(YamlExtension, self).__init__(environment)
+        self.environment.filters.update({
+            'yaml': self._parse_yaml,
+        })
+
+    def parse(self, parser):
+        lineno = next(parser.stream).lineno
+
+        parser.stream.expect('name:as')
+        target = parser.parse_assign_target()
+
+        body = parser.parse_statements(['name:endyaml'], drop_needle=True)
+        macro_name = '_' + parser.free_identifier().name
+
+        return [
+            nodes.Macro(
+                macro_name,
+                [],
+                [],
+                body
+            ).set_lineno(lineno),
+            nodes.Assign(
+                target,
+                nodes.Filter(
+                    nodes.Call(
+                        nodes.Name(macro_name, 'load').set_lineno(lineno),
+                        [],
+                        [],
+                        None,
+                        None
+                    ).set_lineno(lineno),
+                    'yaml',
+                    [],
+                    [],
+                    None,
+                    None
+                ).set_lineno(lineno)
+            ).set_lineno(lineno)
+]
+    def _parse_yaml(self, text):
+        return yaml.load(io.StringIO(text))
 
 class SRAticEnvironment(Environment):
     def __init__(self, template_dir):
         Environment.__init__(self, trim_blocks=True,
                              lstrip_blocks=True,
-                             loader=FileSystemLoader([template_dir]))
+                             loader=FileSystemLoader([template_dir]),
+                             extensions=[YamlExtension])
         self.filters["expand"] = self.expand
         self.filters["warn"] = self.__warn
         self.filters["match"] = self.__match
