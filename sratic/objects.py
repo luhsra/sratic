@@ -244,6 +244,8 @@ class ObjectStore:
         assert m, "Invalid id for lecture, use: " + regex
         semester, series = m.groups()
         obj['semester'] = semester
+        obj['sortkey'] = semester[2:]+semester[:2]
+        obj['semester-pretty'] = ("Sommer" if semester[0] == 's' else "Winter") + "semester 20" + semester[2:]
         obj['series'] = series
         obj['parent'] = 'lehre-' + semester
 
@@ -307,6 +309,7 @@ class ObjectStore:
                     maxage=None,
                     show_list=False,
                     lecture=None,
+                    staff=None,
                     ):
         ret = []
         captured = set()
@@ -339,6 +342,9 @@ class ObjectStore:
             ) or (
                 type == 'evaluation'
                 and (not lecture or lecture == obj['lecture']['series'])
+            ) or (
+                type == 'lecture'
+                and (not staff or [p for p in obj['staff'] if p['id'] == staff])
             )
             ):
                 if id(obj) not in captured:
@@ -357,6 +363,8 @@ class ObjectStore:
                 return str(10000-year) + x.get('title', '') + x['id']
             if self.isA(x, 'news'):
                 return (x['date'], x['title'])
+            if self.isA(x, 'lecture'):
+                return x['sortkey']
             if 'id' in x:
                 return x['id']
             return str(x)
