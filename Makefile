@@ -39,10 +39,10 @@ clean: PHONY
 
 # The following targets are used only by automated jenkins builds
 deploy-jenkins: sync PHONY
-	cd src; ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/
+	cd src; ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/ --dump-objects
 
 deploy-jenkins-force: sync PHONY
-	cd src; ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/ --force
+	cd src; ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/ --force --dump-objects
 
 
 

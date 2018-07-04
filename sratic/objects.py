@@ -1,4 +1,4 @@
-from .schema import check_schema
+from .schema import schema_for_obj, check_schema
 import os.path as osp
 import datetime
 import hashlib
@@ -16,6 +16,7 @@ def wrap_list(lst):
 class ObjectStore:
     def __init__(self):
         self.objects = {}
+        self.schema = None
 
         self.object_constructors = {
             'lecture': self.__init__lecture,
@@ -43,10 +44,14 @@ class ObjectStore:
                 ret += str(ord(c))
         return ret
 
+    def schema_for(self, obj):
+        return schema_for_obj(self.schema, obj)
+
     def crawl_pages(self, schema, data_dir, pages):
         # The dict that maps every object id to its object
         # ID -> object
         objects = self.objects
+        self.schema = schema
 
         # ID -> YAMLFragment
         page_objects = {}
@@ -98,6 +103,7 @@ class ObjectStore:
 
                 # Update some fields from the bibtex entry
                 page['bibtex'] = obj
+                page['x-exported'] = obj.get('x-exported', True)
                 if not 'title' in page:
                     page['title'] = obj['title']
                 # Extract list of projects from bibtex file

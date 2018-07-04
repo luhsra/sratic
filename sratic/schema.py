@@ -1,6 +1,18 @@
 import logging
 import datetime
 
+def schema_for_obj(schema_document, obj):
+    Type = obj.get('type')
+    # If it has no type, we just can yes
+    if not Type:
+        return {}
+
+    # Generate a combined schema
+    schema = {}
+    for x in Type:
+        schema.update(schema_document.data[x])
+    return schema
+
 
 def check_schema(schema_document, obj, objects):
     """Validates a object  against the schema definition"""
@@ -10,9 +22,7 @@ def check_schema(schema_document, obj, objects):
         return True
 
     # Generate a combined schema
-    schema = {}
-    for x in Type:
-        schema.update(schema_document.data[x])
+    schema = schema_for_obj(schema_document, obj)
 
     for field,rules in schema.items():
         if rules.get('required'):
