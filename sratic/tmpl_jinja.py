@@ -11,21 +11,24 @@ import io
 
 class YamlExtension(Extension):
     # a set of names that trigger the extension.
-    tags = set(['yaml'])
+    tags = set(['yaml', 'box'])
 
     def __init__(self, environment):
         super(YamlExtension, self).__init__(environment)
         self.environment.filters.update({
             'yaml': self._parse_yaml,
+            'box': self._parse_box,
+
         })
 
     def parse(self, parser):
-        lineno = next(parser.stream).lineno
+        tag = next(parser.stream)
+        lineno = tag.lineno
 
         parser.stream.expect('name:as')
         target = parser.parse_assign_target()
 
-        body = parser.parse_statements(['name:endyaml'], drop_needle=True)
+        body = parser.parse_statements(['name:end' + str(tag)], drop_needle=True)
         macro_name = '_' + parser.free_identifier().name
 
         return [
@@ -45,16 +48,21 @@ class YamlExtension(Extension):
                         None,
                         None
                     ).set_lineno(lineno),
-                    'yaml',
-                    [],
+                    str(tag),
+                    [nodes.Const(str(target.name))],
                     [],
                     None,
                     None
                 ).set_lineno(lineno)
             ).set_lineno(lineno)
-]
-    def _parse_yaml(self, text):
+        ]
+
+    def _parse_yaml(self, text, *args):
         return yaml.load(io.StringIO(text))
+
+    def _parse_box(self, text, boxname):
+        self.environment.globals['page'][boxname] = text
+        return text
 
 class SRAticEnvironment(Environment):
     def __init__(self, template_dir):
@@ -79,6 +87,7 @@ class SRAticEnvironment(Environment):
         # A list of all copied and known assets
         self.assets = []
         self.globals['__asset'] = self.__asset
+
 
     def expand(self, text, **kwargs):
         # Some SRAtic specific markups
