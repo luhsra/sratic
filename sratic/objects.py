@@ -56,6 +56,8 @@ class ObjectStore:
         # ID -> YAMLFragment
         page_objects = {}
 
+        aliases = set()
+
         # Step 1: Every page object should have an ID. If it does not
         # have an ID, we assign the local part of the page as an id. E.g.
         # `/index.html' for the root page
@@ -71,6 +73,8 @@ class ObjectStore:
                 objects[obj['id']] = obj
                 obj['__file__'] = page.path
             # Step 1.2: build an index of all page yaml fragments
+            assert page.data['id'] not in page_objects, \
+                "Duplicate Page ID: %s" % page.data['id']
             page_objects[page.data['id']] = page
 
             # Step 1.3: Add the page type to the page
@@ -82,6 +86,13 @@ class ObjectStore:
                     assert type(page.data['type']) is str
                     Type += [page.data['type']]
             page.data['type'] = Type
+
+            # Step 1.4: Sanity check aliases
+            if 'permalink.alias' in page.data:
+                alias = page.data['permalink.alias']
+                assert alias not in aliases, "Alias %s is duplicated" % (alias)
+                aliases.add(alias)
+
 
         # Step 2: Generate an Index for all objects that are defined in the data directory
         for obj in data_dir.objects():
