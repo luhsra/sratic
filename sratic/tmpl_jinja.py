@@ -164,4 +164,5 @@ class SRAticEnvironment(Environment):
             if os.path.basename(asset) == name:
                 assert found is None, "Asset %s is unambigous (%s,%s)" %(name, found, asset)
                 found = asset
+        assert found, "Could not find asset: %s" %(name)
         return found
