@@ -7,6 +7,10 @@ import os.path as osp
 from .metadata import Constructors
 import bibtexparser
 from collections import defaultdict
+import time
+import os.path
+import pickle
+import hashlib
 
 
 def resolve_load_bibtex(fragment, parent, key):
@@ -26,14 +30,41 @@ def resolve_load_bibtex(fragment, parent, key):
 
 Constructors.add("!bibtex", Constructors.LOAD_BIBTEX, resolve_load_bibtex)
 
+def try_load_bibtex_pickle(filename, filename_pickle):
+    sha1sum = hashlib.sha1()
+    with open(filename, "rb") as fd:
+        sha1sum.update(fd.read())
+    new_sha1sum = sha1sum.digest()
+    data = None
+
+    try:
+        with open(filename_pickle, 'rb') as fd:
+            old_sha1sum, data = pickle.load(fd)
+        if old_sha1sum != new_sha1sum:
+            data = None
+    except Exception as e:
+        print(e)
+        pass
+    return new_sha1sum, data
+
 def load_bibtex(filename, modify_data=None):
     """Loads a bibtex file, and exposes it as a dict, to be included by
        !bibtex.
     """
+    parser_start = time.time()
     fd = open(filename)
-    parser = bibtexparser.bparser.BibTexParser()
-    parser.ignore_nonstandard_types = False
-    data = bibtexparser.load(fd, parser)
+    filename_pickle = filename + ".pickle"
+    sha1sum, data = try_load_bibtex_pickle(filename, filename_pickle)
+    if data is None:
+        parser = bibtexparser.bparser.BibTexParser(common_strings=True)
+        parser.ignore_nonstandard_types = False
+        data = bibtexparser.load(fd, parser)
+        with open(filename_pickle, "wb+") as pickle_fd:
+            pickle.dump((sha1sum, data), pickle_fd)
+    parser_end = time.time()
+    pickle.dumps(data)
+    logging.info("BibTeX Parsing/Loading[%s]: %.2f", os.path.basename(filename),
+                 parser_end - parser_start)
     ret = {
         'entries': [],
         'years': defaultdict(list),
