@@ -43,7 +43,6 @@ def try_load_bibtex_pickle(filename, filename_pickle):
         if old_sha1sum != new_sha1sum:
             data = None
     except Exception as e:
-        print(e)
         pass
     return new_sha1sum, data
 
