@@ -6,6 +6,7 @@ from enum import Enum
 import os.path as osp
 import logging
 import io
+import glob
 
 
 class Constructors:
@@ -194,17 +195,30 @@ class YAMLDataFactory:
     ### Resolve Constructors
     def __resolve_splice(self, fragment, parent, key):
         fn, stmt_fn = parent[key][1]
-        fn = osp.join(osp.dirname(stmt_fn), fn)
-        other = self.__load_fragment(fn)
-        fragment.sources.update(other.sources)
-        assert type(other.data) == type(parent),\
-            "Splicing for %s failed. Type mismatch"%(fn)
+        if '*' in fn:
+            fns = glob.glob(osp.join(osp.dirname(stmt_fn), fn))
+        else:
+            fns = [fn]
+
+        splice_data = None
+        for fn in fns:
+            fn = osp.join(osp.dirname(stmt_fn), fn)
+            other = self.__load_fragment(fn)
+            fragment.sources.update(other.sources)
+            assert type(other.data) == type(parent),\
+                "Splicing for %s failed. Type mismatch (%s != %s)"%(fn, type(other.data), type(parent))
+            if splice_data is None:
+                splice_data = other.data.copy()
+            elif type(data) is dict:
+                splice_data.update(other.data)
+            else:
+                splice_data += other.data
 
         if type(parent) is list:
-            parent[key:key+1] = other.data
+            parent[key:key+1] = splice_data
         else:
             del parent[key]
-            for k, v in other.data.items():
+            for k, v in splice_data.items():
                 parent[k] = v
         return True
 

@@ -265,6 +265,7 @@ class ObjectStore:
         obj['semester-pretty'] = ("Sommer" if semester[0] == 's' else "Winter") + "semester 20" + semester[2:]
         obj['series'] = series
         obj['parent'] = 'lehre-' + semester
+        obj['modkat'] = 'modkat-' + semester + '-' + series
 
     def get_submenu(self, page):
         """Search for the first parent with a submenu.
