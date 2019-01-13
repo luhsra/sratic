@@ -63,7 +63,7 @@ class GridTableExtension(markdown.Extension):
                                       '<hashheader')
 
 def makeExtension(configs={}):
-    return GridTableExtension(configs=configs)
+    return GridTableExtension()
 
 class GridTableCell(object):
     """
