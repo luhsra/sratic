@@ -363,6 +363,8 @@ class ObjectStore:
             ) or (
                 type == 'lecture'
                 and (not staff or [p for p in obj['staff'] if p['id'] == staff])
+            ) or (
+                type == 'post'
             )
             ):
                 if id(obj) not in captured:
@@ -379,7 +381,7 @@ class ObjectStore:
             if self.isA(x, 'publication'):
                 year =  int(x['bibtex'].get('year', '0'))
                 return str(10000-year) + x.get('title', '') + x['id']
-            if self.isA(x, 'news'):
+            if self.isA(x, 'news') or self.isA(x, 'post'):
                 return (x['date'], x['title'])
             if self.isA(x, 'lecture'):
                 return x['sortkey']

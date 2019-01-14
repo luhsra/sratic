@@ -116,13 +116,12 @@ class SRAticEnvironment(Environment):
         text = re.sub('\[\[([^\[\].]*?)((?:\.[^\[\]]*?)?)\](?:\[([^\[\]].*?)\])?\]', internal_link,
                          text)
 
-        # 2. We always include show and navication, as it is used so often
-        text = "{% import 'show.jinja'  as show %}" + \
-               "{% import 'navigation.jinja'  as nav %}" + \
-               "{% set R = page.relative_root %}" + \
-               text
+        # 2. We always include a few default jinja templates modules
+        prefix_text = "{% set R = page.relative_root %}\n"
+        for name, jinja_filename in self.globals['data']['site'].get('default_templates', {}).items():
+             prefix_text += "{{% import '{}' as {} %}}\n".format(jinja_filename, name)
 
-        template = self.from_string(text)
+        template = self.from_string(prefix_text + text)
         return template.render(**kwargs)
 
     def wrap_list(self, elem):
