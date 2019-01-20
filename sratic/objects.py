@@ -5,6 +5,7 @@ import hashlib
 import base64
 import re
 import logging
+import uuid
 
 def wrap_list(lst):
     if not lst:
@@ -294,6 +295,13 @@ class ObjectStore:
         """
         now = datetime.datetime.now(datetime.timezone.utc).astimezone()
         return now.isoformat()
+
+    @staticmethod
+    def uuid(text):
+        """A Jinja Filter that creates an UUID
+        """
+        return uuid.uuid5(uuid.NAMESPACE_URL, text)
+
 
     def deref(self, elem, fail=True):
         """Dereferences a object, if it should be necessary"""
