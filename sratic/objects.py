@@ -393,6 +393,8 @@ class ObjectStore:
                 return (x['date'], x['title'])
             if self.isA(x, 'lecture'):
                 return x['sortkey']
+            if self.isA(x, 'evaluation'):
+                return x['lecture']['sortkey'] + x.get('note', "")
             if 'id' in x:
                 return x['id']
             return str(x)
