@@ -263,7 +263,7 @@ class ObjectStore:
         semester, series = m.groups()
         obj['semester'] = semester
         obj['sortkey'] = semester[2:]+semester[:2]
-        obj['semester-pretty'] = ("Sommer" if semester[0] == 's' else "Winter") + "semester 20" + semester[2:]
+        obj['semester-pretty'] = ("Sommer" if semester[0] == 's' else "Winter") + " 20" + semester[2:]
         obj['series'] = series
         obj['parent'] = 'lehre-' + semester
         obj['modkat'] = 'modkat-' + semester + '-' + series
