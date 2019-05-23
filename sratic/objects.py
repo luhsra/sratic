@@ -332,6 +332,7 @@ class ObjectStore:
                     author=None,
                     own=None,
                     bibtype=None,
+                    entrysubtype=None,
                     maxage=None,
                     show_list=False,
                     lecture=None,
@@ -361,6 +362,7 @@ class ObjectStore:
                 and (not project or project in obj['projects'])
                 and (own == None or own == obj['bibtex'].get('x-own', False))
                 and (not bibtype or obj['bibtex']['ENTRYTYPE'].lower() in wrap_list(bibtype))
+                and (not entrysubtype or obj['bibtex'].get('entrysubtype') in wrap_list(entrysubtype))
                 and (not author or (author in (obj['bibtex'].get('authors',[]) \
                                             + obj['bibtex'].get('editors',[]))))
             ) or (
