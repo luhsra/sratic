@@ -209,7 +209,7 @@ class YAMLDataFactory:
                 "Splicing for %s failed. Type mismatch (%s != %s)"%(fn, type(other.data), type(parent))
             if splice_data is None:
                 splice_data = other.data.copy()
-            elif type(data) is dict:
+            elif type(other.data) is dict:
                 splice_data.update(other.data)
             else:
                 splice_data += other.data
