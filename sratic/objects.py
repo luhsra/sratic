@@ -130,7 +130,22 @@ class ObjectStore:
             for T in obj['type']:
                 if T in self.object_constructors:
                     self.object_constructors[T](obj)
+        # Step 8: Generate alias IDs for some objects
+        for obj in list(objects.values()):
+            aliases = []
+            if self.isA(obj, 'person'):
+                aliases.append(obj['name'])
 
+            # Permalink aliases provoke an object alias
+            if 'permalink.alias' in obj:
+                aliases.append(obj['permalink.alias'])
+
+            for id in aliases:
+                if id in objects:
+                    assert obj == objects[id],\
+                        "Duplicate object ID: %s" %(id)
+                else:
+                    objects[id] = obj
 
         # Step 5: Assemble the sitemap and the parent->child relation
         for obj in objects.values():
@@ -197,22 +212,6 @@ class ObjectStore:
                 if other in page_objects:
                     page.sources.update(page_objects[other].sources)
 
-        # Step 8: Generate alias IDs for some objects
-        for obj in list(objects.values()):
-            aliases = []
-            if self.isA(obj, 'person'):
-                aliases.append(obj['name'])
-
-            # Permalink aliases provoke an object alias
-            if 'permalink.alias' in obj:
-                aliases.append(obj['permalink.alias'])
-
-            for id in aliases:
-                if id in objects:
-                    assert obj == objects[id],\
-                        "Duplicate object ID: %s" %(id)
-                else:
-                    objects[id] = obj
 
         self.objects = objects
         logging.info("%d pages, %d objects", len(page_objects),
@@ -232,7 +231,11 @@ class ObjectStore:
                 if 'parent' not in p.data:
                     break
                 else:
-                    p = page_objects[p.data['parent']]
+                    pp = p.data['parent']
+                    ## resolve alias
+                    if pp not in page_objects:
+                        pp = objects[pp]['id']
+                    p = page_objects[pp]
 
     def has_menu_children(self, elem):
         entries = self.deref(elem).get('menu') or self.deref(elem).get('children', [])
