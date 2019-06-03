@@ -184,6 +184,12 @@ be shown, beginning from the actual page.
 
 A submenu can be attached with the `submenu` key.
 
+To generate the submenu automatically from the children, use the
+`submenu.list: true` key for each child instead of writing the submenu
+entries explicitly for the parent.
+
+If special ordering of the submenu is wanted, name the entries explicitly.
+
 ## Publication data and bibtex entries ##
 
 As SRAtic is designed for the use in an academic environment, reading

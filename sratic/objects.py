@@ -177,6 +177,16 @@ class ObjectStore:
                     if child and 'parent' not in child:
                         child['parent'] = obj['id']
 
+        # Step 5b: Assemble submenu structures if submenu.list is set True
+        for obj in objects.values():
+            if 'parent' in obj and obj.get('submenu.list',False):
+                p = obj['id']
+                pp = obj['parent']
+                if not 'submenu' in objects[pp]:
+                    objects[pp]['submenu'] = []
+                if not p in objects[pp]['submenu']:
+                    objects[pp]['submenu'].append(p)
+
 
             # Wrap the dependencies, when we're at it
             # Then this works also
@@ -241,7 +251,7 @@ class ObjectStore:
         entries = self.deref(elem).get('menu') or self.deref(elem).get('children', [])
         for p in entries:
             p = self.deref(p)
-            if p.get('menu.list', True):
+            if p.get('menu.list', True) and not p.get('submenu.list', False):
                 return True
         return False
 
