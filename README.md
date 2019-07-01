@@ -68,6 +68,10 @@ make life and maintainability of websites easier.
    another file can be included at exactly that position. The
    statement is then replaced with the actual data of the referenced
    yaml file.
+   Via `<included content>['page-body']` the body of the included page
+   is accessible and may be rendered. Markdown processing and variable
+   substitution is done by applying filters:
+   `{{ <included content>['page-body'] | markdown | expand }}`
 
 - `!splice <filename.yml>`
    This operation is very similar to the include statement, but it
