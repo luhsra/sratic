@@ -51,7 +51,7 @@ class YAMLFragment:
         self.path = filename
         with open(filename) as stream:
             try:
-                self.data = yaml.load(stream)
+                self.data = yaml.load(stream, Loader=yaml.Loader)
             except Exception as x:
                 logging.error("Error in %s", filename)
                 raise x
@@ -63,7 +63,7 @@ class YAMLFragment:
         self.path = origin_filename
         try:
 
-            self.data = yaml.load(io.StringIO(text))
+            self.data = yaml.load(io.StringIO(text), Loader=yaml.Loader)
         except Exception as x:
             logging.error("Error in %s", origin_filename)
             raise x

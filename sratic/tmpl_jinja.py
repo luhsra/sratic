@@ -58,7 +58,7 @@ class YamlExtension(Extension):
         ]
 
     def _parse_yaml(self, text, *args):
-        return yaml.load(io.StringIO(text))
+        return yaml.load(io.StringIO(text), Loader=yaml.Loader)
 
     def _parse_box(self, text, boxname):
         self.environment.globals['page'][boxname] = text

@@ -19,7 +19,7 @@ def resolve_load_bibtex(fragment, parent, key):
         # Serializing and reloading is the only possibility to
         # get a real dictionary from that YAML internal data structrues.
         # fn[1] is the extra data
-        modify_data = yaml.load(yaml.serialize(fn[1]))
+        modify_data = yaml.load(yaml.serialize(fn[1]), Loader=yaml.Loader)
         fn = fn[0].value
     else:
         modify_data = {}
