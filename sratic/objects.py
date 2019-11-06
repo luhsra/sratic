@@ -65,8 +65,12 @@ class ObjectStore:
         for page in pages:
             (base, ext) = osp.splitext(page.path)
             page.data['href'] = base[1:] + ".html"
-            if not "id" in page.data:
+            if "id" in page.data:
+                perma_name =  page.data['id'].replace(':', '__')
+                page.data['permalink.href'] = '/p/' + perma_name
+            else:
                 page.data['id'] = page.data['href']
+
 
             # Step 1.1: include all objects in this page to the object
             # index.
@@ -93,6 +97,7 @@ class ObjectStore:
                 alias = page.data['permalink.alias']
                 assert alias not in aliases, "Alias %s is duplicated" % (alias)
                 aliases.add(alias)
+                page.data['permalink.alias.href'] = '/p/' + alias
 
 
         # Step 2: Generate an Index for all objects that are defined in the data directory
@@ -139,6 +144,7 @@ class ObjectStore:
             # Permalink aliases provoke an object alias
             if 'permalink.alias' in obj:
                 aliases.append(obj['permalink.alias'])
+                obj['permalink.alias.href'] = "/p/" + obj['permalink.alias']
 
             for id in aliases:
                 if id in objects:
@@ -350,6 +356,7 @@ class ObjectStore:
                     core=None,
                     maxage=None,
                     show_list=False,
+                    is_alias=None,
                     lecture=None,
                     staff=None,
                     ):
@@ -360,6 +367,7 @@ class ObjectStore:
             if self.isA(obj, type) \
             and (obj.get('show.list', 'true') or show_list) \
             and (not filter or eval(filter)(obj)) \
+            and (is_alias is None or is_alias == bool(obj.get('permalink.alias'))) \
             and ((
                 type == 'thesis'
                 and (not status or obj['thesis-status'] in status)
