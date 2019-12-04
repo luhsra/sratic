@@ -378,7 +378,7 @@ class ObjectStore:
                 and (not status or obj['project-status'] in status)
             ) or (
                 type == 'news'
-                and (not project or project in obj['related'])
+                and (not project or ('related' in obj and project in obj['related']))
                 and (not maxage or (datetime.date.today() - obj['date']).days < obj.get('maxage', maxage))
             ) or (
                 type == 'publication'
