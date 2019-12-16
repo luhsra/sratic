@@ -1,3 +1,5 @@
+# coding: utf-8
+
 from .schema import schema_for_obj, check_schema
 import os.path as osp
 import datetime
@@ -159,7 +161,7 @@ class ObjectStore:
                 p = obj['id']
                 pp = obj['parent']
                 assert obj['parent'] in objects, \
-                    "Parent %s is unknown (fn=%s)"%(pp, page.path)
+                    "Parent %s is unknown (in %s)"%(pp, obj["id"])
                 # Add the page ID to the children, not the actual data
                 if not 'children' in objects[pp]:
                     objects[pp]['children'] = []
@@ -276,7 +278,7 @@ class ObjectStore:
     @staticmethod
     def __init__lecture(obj):
         """For a lecture we fill semester, series and parent from the ID"""
-        regex = '^lehre-([ws]s[0-9]{2})-([A-Z_]+)$'
+        regex = '^lehre-([ws]s[0-9]{2})-([A-ZÄÖÜ_]+)$'
         m = re.match(regex, obj['id'])
         assert m, "Invalid id for lecture, use: " + regex
         semester, series = m.groups()
