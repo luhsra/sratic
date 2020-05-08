@@ -1,3 +1,4 @@
+PYTHON := "python3"
 UNAME_S := $(shell uname -s)
 
 ifeq ($(UNAME_S),Darwin)
@@ -15,34 +16,34 @@ all: src/data/bib www
 # The sync rule is established to explicitly sync the external. This
 # is done also in the jenkins rules.
 src/data/bib:
-	./init
+	$(PYTHON) ./init
 
 sync: PHONY
-	./init
+	$(PYTHON) ./init
 
 
 www: PHONY
-	cd src; ../bin/gen -b "." -d ../www -j $(NPROC)
+	cd src; $(PYTHON) ../bin/gen -b "." -d ../www -j $(NPROC)
 
 dry: PHONY
-	cd src; ../bin/gen -b "." -d ../www --dry -j $(NPROC)
+	cd src; $(PYTHON) ../bin/gen -b "." -d ../www --dry -j $(NPROC)
 
 force: sync PHONY
-	cd src; ../bin/gen -b "." -d ../www --force
+	cd src; $(PYTHON) ../bin/gen -b "." -d ../www --force
 
 doc: PHONY
 	mkdir -p doc
-	cd src; ../bin/gen -d ../doc
+	cd src; $(PYTHON) ../bin/gen -d ../doc
 
 clean: PHONY
 	rm -rf www
 
 # The following targets are used only by automated jenkins builds
 deploy-jenkins: sync PHONY
-	cd src; ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/ --dump-objects
+	cd src; $(PYTHON) ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/ --dump-objects
 
 deploy-jenkins-force: sync PHONY
-	cd src; ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/ --force --dump-objects
+	cd src; $(PYTHON) ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/ --force --dump-objects
 
 
 
