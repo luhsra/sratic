@@ -59,7 +59,7 @@ class ObjectStore:
         # ID -> YAMLFragment
         page_objects = {}
 
-        aliases = set()
+        aliases = {}
 
         # Step 1: Every page object should have an ID. If it does not
         # have an ID, we assign the local part of the page as an id. E.g.
@@ -97,8 +97,9 @@ class ObjectStore:
             # Step 1.4: Sanity check aliases
             if 'permalink.alias' in page.data:
                 alias = page.data['permalink.alias']
-                assert alias not in aliases, "Alias %s is duplicated" % (alias)
-                aliases.add(alias)
+                assert alias not in aliases, "Alias %s is duplicated: %s, %s" % (alias, page.data['__file__'],
+                                                                             aliases[alias].data['__file__'])
+                aliases[alias] = page
                 page.data['permalink.alias.href'] = '/p/' + alias
 
 
