@@ -1,4 +1,4 @@
-PYTHON := "python3"
+PYTHON := PYTHONPATH=$(PWD) python3
 UNAME_S := $(shell uname -s)
 
 ifeq ($(UNAME_S),Darwin)
@@ -23,27 +23,27 @@ sync: PHONY
 
 
 www: PHONY
-	cd src; $(PYTHON) ../bin/gen -b "." -d ../www -j $(NPROC)
+	cd src; $(PYTHON) -m sratic  -b "." -d ../www -j $(NPROC)
 
 dry: PHONY
-	cd src; $(PYTHON) ../bin/gen -b "." -d ../www --dry -j $(NPROC)
+	cd src; $(PYTHON) -m sratic  -b "." -d ../www --dry -j $(NPROC)
 
 force: sync PHONY
-	cd src; $(PYTHON) ../bin/gen -b "." -d ../www --force
+	cd src; $(PYTHON) -m sratic  -b "." -d ../www --force
 
 doc: PHONY
 	mkdir -p doc
-	cd src; $(PYTHON) ../bin/gen -d ../doc
+	cd src; $(PYTHON) -m sratic  -d ../doc
 
 clean: PHONY
 	rm -rf www
 
 # The following targets are used only by automated jenkins builds
 deploy-jenkins: sync PHONY
-	cd src; $(PYTHON) ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/ --dump-objects
+	cd src; $(PYTHON) -m sratic  -d /proj/www/lab.sra.uni-hannover.de/ --dump-objects
 
 deploy-jenkins-force: sync PHONY
-	cd src; $(PYTHON) ../bin/gen -d /proj/www/lab.sra.uni-hannover.de/ --force --dump-objects
+	cd src; $(PYTHON) -m sratic  -d /proj/www/lab.sra.uni-hannover.de/ --force --dump-objects
 
 
 
