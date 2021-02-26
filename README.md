@@ -1,8 +1,9 @@
 ---
 id: main
 title: SRAtic - The static website generator for academic institutions
+formatter: markdown
 ---
-# {{ page.title }} #
+# SRAtic - The static website generator for academic institutions  #
 
 ## Design Principles ##
 
@@ -30,12 +31,10 @@ SRAtic has two main components:
 
 As an example, let's examine the source code of this page:
 
-    {% raw %}---
     id: main
     title: SRAtic -The static website generator for academic institutions
     ---
     # {{ page.title }} #
-    {% endraw%}
 
 This page is saved as `index.md` and has a YAML preface, which
 defines data that is valid for the processing of this concrete
@@ -48,7 +47,7 @@ available from the `page.` namespace.
 However, this page and its data is also available from the object
 namespace, where we can retrieve it by the `deref` function:
 
-    {% raw %}{{ deref('main').title }}{% endraw %}
+    {{ deref('main').title }}
 
 This expression is equivalent to the previous one, but can be used
 from any other document. Please note, that the single quotes are

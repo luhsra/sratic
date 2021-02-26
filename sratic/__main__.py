@@ -37,7 +37,8 @@ class Generator:
         self.options = options
 
         self.yaml_data_factory = YAMLDataFactory(None)
-        self.schema = self.yaml_data_factory.load_file("data/schema.yml")
+        schema_fn  = os.path.join(os.path.dirname(__file__), "data/schema.yml")
+        self.schema = self.yaml_data_factory.load_file(schema_fn)
         self.data_dir = self.yaml_data_factory.load_file("data/root.yml")
 
         # Imported modules
@@ -233,7 +234,7 @@ class Generator:
 
         content = page.data['page-body']
         for formatter in formatters:
-            if formatter == "pandoc":
+            if formatter in ("pandoc", "markdown"):
                 content = self.markdown(content, page)
             elif formatter == "jinja":
                 content = self.env.expand(content)
@@ -352,6 +353,10 @@ def main():
     parser.add_argument("-b", "--baseurl",
                         help="relative baseurl of all links", metavar="DIR",
                         default=None)
+    parser.add_argument("-t", "--templates",
+                        help="path to templates", metavar="DIR",
+                        action='append',
+                        default=[])
     parser.add_argument("-f", "--force",
                         help="force rebuild of whole site",
                         action="store_true", default=False)
@@ -375,7 +380,9 @@ def main():
     logging.getLogger("bibtexparser.bparser").setLevel(logging.WARNING)
     logging.getLogger("MARKDOWN").setLevel(logging.WARNING)
 
-    gen = Generator(destination_directory=args.destination, options=args)
+    gen = Generator(destination_directory=args.destination,
+                    template_paths=args.templates,
+                    options=args)
 
     if args.assets:
         asset_suffixes = {x.strip() for x in args.assets.split(",")}
@@ -403,7 +410,7 @@ def main():
             base, ext = osp.splitext(fn)
             ext = ext.lower()
 
-            if os.path.islink(fn):
+            if os.path.islink(fn) and not os.path.relpath(os.path.realpath(fn), ".").startswith("../"):
                 assert not os.path.lexists(dst) or os.path.islink(dst),\
                     "Would override non-symlink with symlink:" + dst
                 symlink = os.readlink(fn)

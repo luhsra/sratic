@@ -1,0 +1,269 @@
+object: &type_object
+  id:
+    require: true
+    type: string
+  type:
+    doc: "Every object can have one or more types. Therefore, this can be a string or an list"
+  show.list:
+    doc: Should the object be listed by show.list?
+    type: bool
+  __file__:
+    doc: Where is this object located?
+    x-exported: false
+  x-exported:
+    doc: Should the object be exported for remote sites?
+    x-exported: false
+    type: bool
+  css_classes:
+    doc: Extra CSS Classes that are used during show.show()
+    type: list
+
+# anchor: An link to an internal page that is controlled by the
+#         generator and has an ID
+anchor:
+  <<: *type_object
+  title:
+    doc: "How should the link target look like"
+  href:
+    doc: "A page ID"
+  anchor:
+    doc: "Anchor within page"
+
+
+# link: This type only makes sense as a separate mixin to another type
+#       (like person) that is hosted externally on another webpage.
+link: &type_link
+  name:
+    doc: "How is this link printed"
+  href:
+    doc: "The URI of the external webpage"
+
+external_link: &type_external_link
+  <<: *type_link
+  <<: *type_object
+
+page: &type_page
+  <<: *type_object
+  parent:
+    doc: "Pages might have a parent."
+  children:
+    doc: "Objects can be subobjects. Mainly, this is necessary for pages"
+  depends:
+    doc: "List or enum of other objects this page depends upon"
+  title:
+    doc: Every page can have an title
+  short_title:
+    doc: Every page can have a shorter version of the title, used for menus
+  lang:
+    doc: Language of this specific page, defaults to en
+  page-body:
+    doc: "Body of that page"
+    x-exported: false
+  last-author:
+    doc: Filled by the generator; The Name of the last author touching that file
+  last-modification:
+    doc: Filled by the generator; The datetime.datetime of the last touching
+  menu:
+    doc: "A page can override its menu (normally its children) by defining this key"
+    type: list
+  menu.append:
+    doc: "A page can add items to its menu"
+    type: list
+  menu.list:
+    doc: "Is the element hidden from the menu. default is no."
+    type: bool
+  submenu:
+    doc: "A page can define its submenu by defining this key"
+    type: list
+  submenu.list:
+    doc: "Should this element be listed as parents submenu instead as normal child. default no"
+    type: bool
+  href:
+    doc: "Every object can have an URI where to find it"
+  formatter:
+    doc: "Which formatting strategy should be used"
+  pandoc.args:
+    doc: "Additional args to pandoc"
+    type: str
+  permalink.href:
+    doc: HREF of page specific permalink
+  permalink.alias:
+    doc: Gernerate an additional alias permalink
+  permalink.alias.href:
+    doc: HREF of generated alias permalink
+  formatter.target:
+    doc: Filename of the generated file
+  data:
+    doc: Arbitrary data. User Defined
+
+thesis:
+  <<: *type_object
+  title:
+    required: true
+    type: string
+  thesis-type:
+    required: true
+    enum: [BA, MA, BAMA]
+  thesis-status:
+    required: true
+    enum: [draft, open, reserved, running, finished]
+  thesis-start:
+    doc: "!!timestamp YYYY-MM-DD"
+    type: date
+  thesis-end:
+    doc: "!!timestamp YYYY-MM-DD"
+    type: date
+  thesis-supervisor:
+    doc: Eine Liste von Personen IDs
+    required: true
+    type: [object.person]
+  thesis-student:
+    doc: Der bearbeitendene Student
+    type: string
+    x-exported: false
+  thesis-document:
+    doc: Ein Link zum PDF der Ausarbeitung
+    type: url
+  thesis-image:
+    doc: Ein Path oder Link zum Symbolbild der Arbeit
+    type: url
+  summary:
+    doc: Eine Kurzzusammenfassung der Arbeit
+    recommended: true
+    type: string
+  projects:
+    doc: A list of projects the thesis is associated with
+    recommended: true
+    type: [object.project]
+
+person:
+  <<: *type_object
+  name:
+    reqired: true
+  external:
+    doc: "Set to true if non-LUH"
+    reqired: false
+  name-prefix:
+    doc: "A title prefix, like Dr."
+    required: false
+  name-postfix:
+    doc: "A title postfix, like M.Sc."
+    required: false
+  job:
+    doc: A short Job Description
+  image:
+    doc: "URL to an picture, showing that person"
+  mail:
+    required: true
+  phone:
+    doc: Die Telefonnummer, sofern Mitarbeiter am Institut
+  room:
+    doc: Der Raum in dem sich der Delingquent Befindet
+
+project:
+  <<: *type_object
+  title:
+    reqired: true
+  short_title:
+    recommended: true
+  project-status:
+    required: true
+    enum: [running, finished]
+  summary:
+    doc: Eine Kurzzusammenfassung des Projektes
+    recommended: true
+    type: string
+
+# The empty, allow anything type bibtex
+bibtex: {}
+
+# The empty, allow anything type modkat
+modkat: {}
+
+publication:
+  <<: *type_object
+  # A publication is some kind of document that was published during
+  # the scientific work. For every publication, there must be a bibtex entry,
+  # which is automatically linked from the bibtex source file
+  title:
+    doc: >
+      The title of a publication is automatically taken from the bibtex, but
+      can be replaced in the publication object
+  bibtex:
+    required: true
+  projects:
+    required: true
+    type: [object.project]
+
+news:
+  <<: *type_object
+  # A news item can be displayed on the front page. It can relate
+  # to various objects (persons, publications, projects).
+  title:
+    required: true
+    type: string
+  date:
+    required: true
+    type: date
+  maxage:
+    type: int
+    doc: "How many days should this new item be displayed"
+  text:
+    required: true
+    type: string
+  related:
+    type: list
+  hall-of-fame:
+    type: bool
+  image:
+    type: url
+
+lecture:
+  <<: *type_object
+  # A lecture is most of the time also a page and has only a few extra fields
+  semester:
+    required: true
+    type: string
+    doc: This is automatically derived from the ID (e.g., ws17)
+  sortkey:
+    required: true
+    type: string
+    doc: This is automatically derived from the ID (e.g., 17ws)
+  semester-pretty:
+    required: true
+    type: string
+    doc: This is automatically derived from the ID (e.g., Sommer 2017)
+  series:
+    required: true
+    type: string
+    doc: This is automatically derived from the ID (e.g., L_BST)
+  modkat:
+    type: string
+    doc: This is automatically derived from ID (e.g., modkat-ws18-L_BST)
+  staff:
+    required: true
+    type: [object.person]
+    deref: true
+  email:
+    type: string
+  studip:
+    type: [[string]]
+
+evaluation:
+  <<: *type_object
+  # An evaluation Ereignis for a lecture
+  score:
+    required: true
+    type: float
+    doc: Globalindikator
+  lecture:
+    required: true
+    type: object.lecture
+    deref: true
+  pdf:
+    required: true
+    type: string
+  note:
+    required: no
+    type: string
+    doc: Zum Beispiel Übung oder andere genauere Spezifzierung

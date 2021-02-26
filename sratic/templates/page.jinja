@@ -1,4 +1,6 @@
 {% import 'navigation.jinja'  as nav %}
+{% import 'layout.jinja'  as layout %}
+
 
 <!DOCTYPE html>
 <html {% if page.lang %}lang="{{ page.lang  }}"{% endif %}>
@@ -8,12 +10,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <link rel="shortcut icon" href="{{ page.relative_root }}/static/favicon.ico" type="image/x-icon">
-    <link rel="alternate" type="application/atom+xml" title="SRA News" href="{{R}}/news.xml">
-    <title>{{ data.site.short_title }} - {{nav.name(page)}}</title>
+        <title>{{ data.site.short_title }} - {{nav.name(page)}}</title>
 
     <!-- Bootstrap -->
     <link href="{{ page.relative_root }}/static/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="{{ page.relative_root }}/static/sra.css" rel="stylesheet" />
+    {{ layout.html_header(page) }}
     {% if page.permalink %}
     <link href="{{ page.permalink }}" rel="bookmark" />
     {% endif %}
@@ -31,24 +32,18 @@
   </head>
   <body>
     <div class="content">
-      {{ nav.navbar(page) }}
+      {{ layout.navbar(page) }}
 
       <div class="container" id="page-{{page.id}}">
-         {{ nav.breadcrumbs(page) }}
-         {% call nav.sidebar(page) %}
+         {{ layout.breadcrumbs(page) }}
+         {% call layout.sidebar(page) %}
                 {{ body }}
          {% endcall %}
       </div><!-- /.container -->
     </div>
 
-    <footer class="footer">
-      <div class="container">
-        <span class="text-muted">Last modified: {{page['last-modification'] }} by {{ nav.link_if_exists(page['last-author']) }} [id:{% if page["permalink.href"] %}<a href="{{ page.relative_root }}/{{page["permalink.href"]}}">{{ page.id }}</a>{% else %}{{page.id}}{%endif%}]
-        {% if page["permalink.alias.href"] %}
-        [alias:<a href="{{ page.relative_root }}/{{(page["permalink.alias.href"])}}">{{ page["permalink.alias"] }}</a>]
-        {% endif %}| <a href="{{ page.relative_root }}/impressum.html">Impressum</a> | <a href="https://www.uni-hannover.de/de/datenschutzerklaerung/">Datenschutzerkl&auml;rung</a> </span>
-      </div>
-    </footer>
+    {{ layout.footer(page) }}
+    
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script language="JavaScript" type="text/javascript" src="{{page.relative_root}}/static/bootstrap/js/jquery.min.js"></script>

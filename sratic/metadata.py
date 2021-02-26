@@ -6,6 +6,7 @@ from enum import Enum
 import os.path as osp
 import logging
 import io
+import os
 import glob
 
 
@@ -48,6 +49,11 @@ class YAMLFragment:
 
     def load_from_file(self, filename):
         """Loads the data from the given source file into this YAML Fragment"""
+        if not os.path.exists(filename):
+            # Fallback to SRAtic provided files
+            filename = os.path.join(os.path.dirname(__file__),
+                                    "data",
+                                    os.path.basename(filename))
         self.path = filename
         with open(filename) as stream:
             try:
