@@ -129,6 +129,12 @@ class ObjectStore:
                 # Extract list of projects from bibtex file
                 page['projects'] = list(filter(None, [x.strip() for x in obj.get('x-projects','').split(",")]))
 
+        for k, transform in data_dir.data.get('bibliography', {}).items():
+            if not k.startswith('transform-'):
+                continue
+            for obj in self.object_list('publication', **transform['filter']):
+                obj['bibtex'].update(transform['set'])
+
         # Step 4: Adjust types and run constructors
         for obj in objects.values():
             # Wrap type field
@@ -344,6 +350,20 @@ class ObjectStore:
         if type(obj.get('type')) is list:
             return Type in obj['type']
         return False
+
+    def object_unique(self, objs):
+        ids = set()
+        ret = []
+        for obj in objs:
+            if type(obj) is str:
+                id = obj
+            else:
+                id = obj['id']
+            if id not in ids:
+                ret.append(obj)
+            ids.add(id)
+        return ret
+
 
 
     def object_list(self, type,

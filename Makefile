@@ -50,5 +50,11 @@ deploy-jenkins-force: sync PHONY
 	cd src; ${SRATIC} -t ../templates  -d /proj/www/lab.sra.uni-hannover.de/ --force --dump-objects
 
 
+osg.www: PHONY
+	mkdir -p osg.www
+	cd osg.src; ${SRATIC} -t ../osg.templates  -d ../osg.www
+
+
+
 
 .PHONY: PHONY

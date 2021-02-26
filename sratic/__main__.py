@@ -61,6 +61,7 @@ class Generator:
         self.env.tests["__has_menu_children"] = self.objects.has_menu_children
         self.env.tests["__child_of"] = self.objects.is_child_of
         self.env.globals["object_list"] = self.objects.object_list
+        self.env.filters["object_unique"] = self.objects.object_unique
         self.env.globals["isA"] = self.objects.isA
         self.env.globals['deref'] = self.objects.deref
         self.env.globals['__get_submenu'] = self.objects.get_submenu

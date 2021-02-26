@@ -31,19 +31,8 @@
 
   </head>
   <body>
-    <div class="content">
-      {{ layout.navbar(page) }}
+    {{ layout.layout(page, body) }}
 
-      <div class="container" id="page-{{page.id}}">
-         {{ layout.breadcrumbs(page) }}
-         {% call layout.sidebar(page) %}
-                {{ body }}
-         {% endcall %}
-      </div><!-- /.container -->
-    </div>
-
-    {{ layout.footer(page) }}
-    
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script language="JavaScript" type="text/javascript" src="{{page.relative_root}}/static/bootstrap/js/jquery.min.js"></script>
