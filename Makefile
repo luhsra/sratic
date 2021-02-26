@@ -44,10 +44,10 @@ clean: PHONY
 
 # The following targets are used only by automated jenkins builds
 deploy-jenkins: sync PHONY
-	cd src; ${SRATIC}  -d /proj/www/lab.sra.uni-hannover.de/ --dump-objects
+	cd src; ${SRATIC} -t ../templates  -d /proj/www/lab.sra.uni-hannover.de/ --dump-objects
 
 deploy-jenkins-force: sync PHONY
-	cd src; ${SRATIC}  -d /proj/www/lab.sra.uni-hannover.de/ --force --dump-objects
+	cd src; ${SRATIC} -t ../templates  -d /proj/www/lab.sra.uni-hannover.de/ --force --dump-objects
 
 
 
