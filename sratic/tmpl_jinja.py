@@ -65,11 +65,12 @@ class YamlExtension(Extension):
         return text
 
 class SRAticEnvironment(Environment):
-    def __init__(self, template_dir):
+    def __init__(self, template_paths):
         Environment.__init__(self, trim_blocks=True,
                              lstrip_blocks=True,
-                             loader=FileSystemLoader([template_dir,
-                                                      os.path.join(os.path.dirname(__file__), "templates")]),
+                             loader=FileSystemLoader(
+                                 template_paths \
+                                 + [os.path.join(os.path.dirname(__file__), "templates")]),
                              extensions=[YamlExtension])
         self.filters["expand"] = self.expand
         self.filters["warn"] = self.__warn
@@ -89,6 +90,12 @@ class SRAticEnvironment(Environment):
         self.assets = []
         self.globals['__asset'] = self.__asset
 
+    def find_template(self, name):
+        """Use the Jinja2 Searchpath to find a given template."""
+        for searchpath in self.loader.searchpath:
+            filename = os.path.join(searchpath, name)
+            if os.path.exists(filename):
+                return filename
 
     def expand(self, text, **kwargs):
         # Some SRAtic specific markups

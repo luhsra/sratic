@@ -29,10 +29,10 @@ class Generator:
     # pylint: disable=too-many-instance-attributes
     # Eleven is reasonable in this case.
     def __init__(self,
-                 template_directory="../templates",
+                 template_paths=[],
                  destination_directory="../www",
                  options=None):
-        self.template_directory = template_directory
+        self.template_paths = template_paths
         self.destination_directory = destination_directory
         self.options = options
 
@@ -44,10 +44,11 @@ class Generator:
         fns = set(filter(None,
                          [getattr(x, "__file__", None) for x in sys.modules.values()]))
         self.sources = fns
-        self.sources.update(glob.glob(template_directory + "/*"))
+        for directory in template_paths:
+            self.sources.update(glob.glob(directory + "/*"))
 
         # Create Jinja2 Environment
-        self.env = SRAticEnvironment(template_directory)
+        self.env = SRAticEnvironment(template_paths)
         self.env.filters["link"] = self.__link
         self.env.filters["link_absolute"] = self.__link_absolute
         self.env.filters["markdown"] = self.markdown
@@ -110,9 +111,7 @@ class Generator:
     def generate_pdf(self, fn, content, url=""):
         cmd = "cd %s; pandoc --template %s -f html -V href='%s'  -o %s" % (
             osp.dirname(fn),
-            osp.abspath(
-                osp.join(self.template_directory,
-                         'pandoc-latex.template')),
+            self.env.find_template('pandoc-latex.template'),
             url,
             osp.basename(fn)
         )
@@ -130,9 +129,7 @@ class Generator:
             extra_args = ""
             extra_args += page.data.get('pandoc.args', '')
             cmd = "pandoc --template %s -f markdown -t html5 %s" % (
-                osp.join(self.template_directory,
-                         'pandoc.template'),
-                extra_args)
+                self.env.find_template('pandoc.template'), extra_args)
             process = subprocess.Popen(cmd,
                                        stdin=subprocess.PIPE,
                                        stdout=subprocess.PIPE,
