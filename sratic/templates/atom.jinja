@@ -1,0 +1,17 @@
+{% import "navigation.jinja" as nav %}
+{%- macro add_entry(title, url) %}
+    <entry>
+        <title type="text">{{ title }}</title>
+        <link rel="alternate" type="text/html" href="{{ url }}" />
+    </entry>
+{%- endmacro -%}
+
+{%- macro add_news_entry(item) %}
+    <entry>
+        <title type="text">{{ item.title }}</title>
+        <link rel="alternate" type="text/html" href="{{ nav.link(item,href_only=True)}}" />
+        <id>urn:{{item.id}}</id>
+        <updated>{{item.date}}</updated>
+        <content type="html"><![CDATA[{{item.text | expand}}]]></content>
+    </entry>
+{%- endmacro -%}

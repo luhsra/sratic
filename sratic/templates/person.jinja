@@ -1,0 +1,61 @@
+{% import 'macros.jinja'  as macros %}
+{% import 'show.jinja'  as show %}
+{% import 'navigation.jinja'  as nav %}
+
+{% macro list(people) %}
+<div class="person container-fluid">
+<div class="row-fluid">
+{% for p in people %}
+  {{ show.show(p,css_classes=['pull-left']) }}
+{% endfor %}
+</div>
+</div>
+{% endmacro %}
+
+{% macro link(people) %}
+{% for p in wrap_list(people) %}
+  {{ nav.link(p) }}{% if not loop.last %}, {% endif %}
+{% endfor %}
+{% endmacro %}
+
+
+{% macro makeheader(person) %}
+<div class="media">
+  <div class="pull-left visible-lg visible-md media-left">
+    <img class="img-thumbnail media-object" src="{{person.image | link}}"/>
+  </div>
+  <div class="media-body">
+    <img class="hidden-lg hidden-md center-block img-responsive img-thumbnail media-object" src="{{person.image | link}}">
+    <br class="hidden-lg hidden-md">
+    <h1 class="roboto media-heading">{{nav.name(person, compact=true)}}</h1>
+    <p>{{nav.name(person, compact=false)}}</p>
+    {% if person.job %}<p><i>{{person.job}}</i></p> {% endif %}
+    <strong>Mail</strong>: {{person.mail}}<br/>
+    {% if person.phone %}<strong>Telefon</strong>: {{person.phone}}<br/>{% endif %}
+    {% if person.room %}<strong>Adresse</strong>:
+      {% if person.room | match('1[0-9]{2}') %}
+        {{ nav.link('kontakt', '30167 Hannover, Appelstraße 4')}},
+				<!-- Trigger the modal with a button -->
+				<a href="#" data-toggle="modal" data-target="#modal{{person.room}}">Raum {{ person.room }}</a>
+				<div id="modal{{person.room}}" class="modal fade" role="dialog">
+				<div class="modal-dialog" style="width:160px;margin-right:50px">
+						<div class="modal-content">
+						<div class="modal-header">
+								 <button type="button" class="close" data-dismiss="modal">&times;</button>
+								 <h4 class="modal-title">Appelstraße&nbsp;4 Raum&nbsp;{{person.room}}</h4>
+						</div>
+						<div class="modal-body">
+							<img src="{{ page.relative_root }}/static/rooms/room-{{person.room}}.png" style="width:125px;height:568px;"> 
+						</div>
+						</div>
+				</div>
+				</div>
+      {% else %}
+         {{ person.room }}  
+      {% endif %}<br/>
+    {% endif %}
+    {% if caller %}{{caller()}} {%endif %}
+  </div>
+</div>
+{% endmacro %}
+

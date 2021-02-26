@@ -1,0 +1,290 @@
+{% import 'navigation.jinja'  as nav %}
+{% import 'macros.jinja'  as macros %}
+
+{% macro people_list(list, compact=True) %}
+  {% for p in wrap_list(list) -%}
+    {%- if not loop.first -%}, {%+ endif %}{% if deref(p,fail=False) -%}
+      {{ nav.link(p, compact=compact) -}}
+    {%- else -%}
+      {{ p -}}
+    {%- endif -%}
+  {%- endfor -%}
+{% endmacro %}
+
+{% macro __link_notnull(href, name, pred=True) %}
+	{% if href and pred %}
+		<span class="bib-link"><a href="{{href | link}}">{{name}}</a></span>
+	{% endif %}
+{% endmacro %}
+
+{% macro show_news(news, css_classes=[]) %}
+<div id="{{news.id}}" class="news object">
+  <div class="newsheader">
+    <span class="newsdate">{{ news.date }}</span>
+    <span class="newstitle">{{ news.title }}</span>
+  </div>
+  <div class="media {{ css_classes | join(' ') }}">
+    <div class="media-body news-content" style="width: auto">
+      {{ news.text | expand }}
+      {% if news.image %}
+        <div class="hidden-lg hidden-md" >
+          <a href="{{ news.image | link }}">
+            <img class="img-responsive" src="{{ news.image | link }}" width="25%"/>
+          </a>
+        </div>
+      {% endif %}
+    </div> {# media-body #}
+    {% if news.image %}
+    <div class="media-right">
+      <a class="visible-lg visible-md" href="{{ news.image | link }}">
+        <img src="{{ news.image | link }}" style="max-width:200px; max-height:150px; padding-left: 10px;"/>
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}
+
+{% macro show_modkat(modkat) %}
+  {% for k in ('Lehrveranstaltung (LV)', 'Angebotsart', 'Frequenz', 'Prüfer', 'Prüfung Wahlmerkmal', 'SWS Kompakt') %}
+    {% if k in modkat %}
+      <b>{{k}}:</b> {{ modkat[k] }}<br/>
+    {% endif %}
+  {% endfor %}
+  <b>Studiengänge:</b>
+  <ul>
+  {% for sg in modkat['Studiengang'] %}
+    <li>{{sg['Name']}}, {{sg['LP']}} LP, (KB: {{sg["Kompetenzbereiche"] | join(", ")}})</li>
+  {% endfor %}
+  </ul>
+{% endmacro %}
+
+{% macro show_publication_badge(badge, type='default') %}
+   {% set config = data.bibliography.badges.get(badge)
+                   or data.bibliography.badges.get(type) %}
+   {% if config.href %}
+      <a href="{{config.href}}" title="{{ config.title }}">
+   {% elif config.ref %}
+      <a href="{{nav.link(config.ref, href_only=True) }}" title="{{ config.title }}">
+   {% endif %}
+   {% if badge %}
+      <span class="label label-{{config.css or "default"}}">{{badge}}</span>
+   {% endif %}
+   {% if config.href or config.ref%}
+      </a>
+   {% endif %}
+{% endmacro %}
+
+{% macro show_publication(object) %}
+	{% set entry = object.bibtex %}
+	<dl class='publication object' id='{{ object.id }}'>
+		<dt class='title'>
+			{% if entry.userd %}
+                           {{ show_publication_badge(entry.userd.split(' ')[0]) }} {# eg. OSPERT '17 #}
+			{% endif %}
+                        {{ show_publication_badge(entry.entrysubtype) }}
+			{% if entry.userc %}
+                          {% set benchmark = entry.userc.split(':')[0] %}
+                          {% set ranking   = entry.userc.split(':')[1] %}
+                          {% if benchmark in data.bibliography.badges %}
+                                {{ show_publication_badge(ranking, benchmark) }}
+                          {% else %}
+                             {{ error("Unknown Conference Ranking: {} (available: {})", benchmark, data.rankings.keys() ) }}
+                          {% endif %}
+			{% endif %}
+                        {{ show_publication_badge(entry.get('x-award'), 'x-award') }}
+			{% if entry.userd or entry.entrysubtype or entry.userc or entry['x-award'] %}
+                            <br/>
+			{% endif %}
+			<span class="bib-title">{{ entry.title }}</span>
+		</dt>
+		<dd>
+			{% if entry.authors %}
+				<span class="bib-author">
+				{{ people_list(entry.authors, compact=True)-}}
+			{% elif entry.editors %}
+				{{ people_list(entry.editors, compact=True)-}}
+			{% endif %}
+			{%- if entry.authors or entry.editors -%}
+				</span>
+			{%- endif -%}
+			{%- if entry.booktitle -%}
+				<span class="bib-booktitle">{{ entry.booktitle }}</span>
+			{%- endif -%}
+			{%- if entry.journal -%}
+		<span class="bib-journal">{{ entry.journal }}</span><span class=bib-journal-issue>{%- if entry.volume -%}{{ entry.volume }}{% if entry.number %}.{{ entry.number}}{% elif entry.issue %}.{{ entry.issue}}{% endif %}{% endif -%}</span>
+			{%- endif -%}
+			{# The type= bibtex field is renamed automatically to thesistype= #}
+			{%- set thesistype = (entry.thesistype or entry.ENTRYTYPE == 'phdthesis' and 'PHD thesis') -%}
+			{%- if entry.ENTRYTYPE == 'thesis' or entry.ENTRYTYPE == 'phdthesis' -%}
+				<span class="bib-thesis">
+					<span class="bib-thesistype">{{thesistype}}</span>
+					{%- if entry.school -%}
+						<span class="bib-school">{{entry.school -}}</span>
+					{%- else -%}
+						{# simplest way to raise an exception
+						   the school field is mandatory, if entry is a thesis
+						   warn function does not work here
+						#}
+						{{ entry.ID + ' lacks a school field' + 0/0}}
+					{%- endif -%}
+				</span>
+			{%- endif -%}
+			{%- if entry.publisher or entry.year -%}
+				<span class="bib-pubyear">
+			{%- endif -%}
+			{%- if entry.publisher -%}
+				<span class="bib-publisher">{{entry.publisher}}</span>
+			{%- endif -%}
+			{%- if entry.year -%}
+				<span class="bib-year">{{entry.year}}</span>
+			{%- endif -%}
+			{%- if entry.publisher or entry.year -%}
+				</span>
+			{%- endif -%}
+			{%- if entry.ENTRYTYPE == 'book' and entry.isbn -%}
+				<span class="bib-isbn">{{entry.isbn -}}</span>
+			{%- endif -%}
+			{% if entry['x-award'] %}<span class=bib-award>{{ entry['x-award'] }}</span>{% endif -%}
+			{% if entry['note'] %}<span class=bib-note>{{ entry['note'] }}</span>{% endif -%}
+			.
+                        {# For PDF generation, we ignore some fields #}
+                        {% if not page.pdf %}
+			<br/>
+			{{ __link_notnull(entry['x-pdf'], 'PDF') }}
+                        {{ __link_notnull(object['href'], 'Details') }}
+			{%- if not entry['x-pdf'] and entry['eprint'] -%}
+				{{ __link_notnull('http://arxiv.org/pdf/' + entry.get('eprint',''), 'PDF') }}
+			{%- endif -%}
+			{{ __link_notnull(entry['x-url'], 'URL') }}
+			{{ __link_notnull(entry['x-slides'], 'Slides') }}
+			{{ __link_notnull(entry['x-video'], 'Video') }}
+			{{ __link_notnull(entry['x-rawdata'], 'Raw Data') }}
+			{{ __link_notnull('http://dx.doi.org/' + entry.get('doi',''), entry.doi, entry.doi) }}
+			{%- if not entry['doi'] -%}
+				{{ __link_notnull('http://arxiv.org/abs/' + entry.get('eprint',''), entry.eprint, entry.eprint) }}
+			{%- endif -%}
+			<!-- Trigger the modal with a button -->
+			[<a href="#" data-toggle="modal" data-target="#modal{{ __id(entry) }}">BibTex</a>]
+			<div id="modal{{ __id(entry) }}" class="modal fade" role="dialog">
+				<div class="modal-dialog modal-lg">
+					<div class="modal-content">
+						<div class="modal-header">
+							<button type="button" class="close" data-dismiss="modal">&times;</button>
+							<h4 class="modal-title">BibTex Entry</h4>
+						</div>
+						<div class="modal-body">
+							<pre>{{entry.bibtex}}</pre>
+						</div>
+						<div class="modal-footer">
+							<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+						</div>
+					</div>
+				</div>
+			</div>
+                        {% endif %}
+		</dd>
+	</dl>
+{% endmacro %}
+
+{% macro show(object, css_classes=[]) %}
+{% set object = deref(object) %}
+{% set css_classes = css_classes + object.get('css_classes', []) %}
+{% if isA(object, 'thesis') %}
+<div class="object thesis media {{ css_classes | join(' ') }}">
+  <p class="media-heading"><strong>{{ nav.link(object,compact=false) }}</strong></p>
+  {% if not page.pdf %}
+    <div class="media-left">
+      {% if object['thesis-image'] %}
+        <img src="{{ object['thesis-image'] | link }}" style="max-width:128px; max-height:90px; padding-right: 10px;"/>
+      {% else %}
+        <span style="padding-left:40px">&nbsp;</span>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="media-body" style="width: auto">
+    Typ: <i> {{ macros.thesis_type(object) }}</i><br/>
+    {% if not page.pdf %}
+      Status: <i> {{ macros.thesis_status(object) }}</i><br/>
+    {% endif %}
+    Supervisors: <i> {{ people_list(object['thesis-supervisor']) }}</i><br/>
+    {% if object.projects and page.id not in object.projects %}
+      Project: {% for p in wrap_list(object.projects) %}{{nav.link(p)}}{%endfor%}<br/>
+    {% endif %}
+    {% if object['thesis-student'] %}
+        Bearbeiter: {{ object['thesis-student'] }}
+        {% if object['thesis-end'] %}
+           (abgegeben: {{ object['thesis-end'].strftime('%d. %b %Y') }})
+        {% endif %}
+        <br/>
+    {% endif %}
+    {% if object.summary or object['thesis-document'] or object.href %}
+      {{ object.summary }}
+      {% if object['thesis-document'] and not page.pdf %}
+        <a href="{{object['thesis-document'] | link}}">[PDF]</a>
+      {% endif %}
+    {% endif %}
+  </div>
+
+</div>
+{% elif isA(object, 'news') %}
+  {{ show_news(object, css_classes=css_classes) }}
+{% elif isA(object, 'modkat') %}
+  {{ show_modkat(object) }}
+{% elif isA(object, 'person') %}
+  <div id="{{object.id}}" class="object person {{ css_classes | join(' ') }}" style='width:200px; text-align:center;'><br/>
+    <a href="{{object.href | link}}">
+       <img src="{{ (object['image'] or '/static/placeholder.png') | link }}" style="height:200px; max-width:150px; max-height:200px;"/>
+       <br/><br/>
+       {{ nav.link(object,compact=false,link_attr="Bitte kein Extra <a> Tag vergeben.") }}
+    </a>
+  </div>
+{% elif isA(object, 'project') %}
+  <dl class="object project"><dt>{{ nav.link(object, None, compact=true) }}: {{object.title}}</dt>
+    <dd>{{ object.summary }}</dd>
+  </dl>
+{% elif isA(object, 'evaluation') %}
+  <span>{{ nav.link(object.lecture, deref('lehre-' + object.lecture.semester).short_title) }} •
+        {% if object.note %}{{object.note}} •{% endif %}
+        {% for person in  object.lecture.staff %}
+          {% if person.id in ["lohmann", "cms", "brehm"] %}
+            {{ nav.link(person) }} •
+          {% endif %}
+        {% endfor %}
+        {{ nav.asset(object.pdf, "Evaluation (PDF)") }} •
+        Bewertung: {{ object.score }}
+  </span>
+{% elif isA(object, 'publication') %}
+  {{ show_publication(object) }}
+
+{% else %}
+{{ ('Cannot show object of type ' + str(object.type)) | warn }}
+[{{ object.type }}:{{ object.id }}]
+{% endif %}
+{% endmacro %}
+
+{% macro list(type) %}
+{% for obj in object_list(type, **kwargs) | sorted %}
+{% if caller %}
+   {{ caller(obj) }}
+{% else %}
+   {{ show(obj) }}
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+
+{% macro show_lectures(person) %}
+    <ul>
+      {% set lectures_own = object_list('lecture', staff=person) | sorted%}
+      {% set vars = namespace(series=[]) %}
+      {% for l_own in lectures_own  %}
+        {% if l_own.series not in vars.series %}
+          {% set current = object_list('lecture', is_alias=True) | selectattr("title", "equalto", l_own.title) | first %}
+          <li>{{nav.link(current or l_own, link_attr="permalink.alias.href")}}</li>
+          {% set vars.series = vars.series + [l_own.series] %}
+        {% endif %}
+      {% endfor %}
+    </ul>
+{% endmacro %}

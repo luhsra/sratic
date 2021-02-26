@@ -1,0 +1,187 @@
+{% macro name(object, compact=True) %}
+  {% set object = deref(object) %}
+  {% if isA(object, 'person') -%}
+    {%- if object['name-prefix'] and not compact %}{{ object['name-prefix'] }} {%+ endif %}{{ object.name }}{% if object['name-postfix'] and not compact %} ({{ object['name-postfix'] }}){% endif -%}
+{%- else -%}
+  {{ (compact and object.short_title) or object.title or object.name or ('['+object.id+']') }}
+{%- endif -%}
+{% endmacro %}
+
+{% macro link(object, title=None, link_attr=None, title_attr=None, compact=True, href_only=False, classes=None) %}
+  {# If we have an anchor object in front of us, we dereference it once. #}
+  {% set link = deref(object) -%}
+  {% set link_attr = (link_attr in link and link_attr) or 'href' -%}
+  {% set object = (isA(deref(object), 'anchor') and deref(object[link_attr])) or deref(object) -%}
+  {% set link_attr = object.get(link_attr) -%}
+  {# If we link a publication/bibtex entry, we refer to an anchor on the publications-all site or to the current page, depending on the x-own attribute #}
+  {% set publications_href = (((object['x-own'] or (object.bibtex and object.bibtex['x-own']))
+                                  and deref('publications-all').href)
+                               or page.href) %}
+  {% set href = (link_attr
+                 or (isA(object, 'news') and deref('news').href)
+                 or (isA(object, 'publication') and publications_href)
+                 or (isA(object, 'bibtex') and publications_href)) %}
+  {% set anchor = (link.anchor
+                   or (isA(object, 'news') and object.id)
+                   or (isA(object, 'publication') and (not isA(object, 'page')) and object.id)
+                   or (isA(object, 'bibtex') and (not isA(object, 'page')) and object.id[4:])) -%}
+  {%- set title = title or (title_attr and link[title_attr]) or name(link, compact=compact) -%}
+  {% if href -%}
+    {%- set href = (href | link) + ((anchor and "#" + anchor) or "") -%}
+    {%- if href_only -%}{{href}}{%- else -%}
+      <a {% if classes %}class="{{classes}}"{%endif%} href="{{href}}" {% if object.external %}class="external"{% endif %}>{{ title }}</a>
+    {%- endif -%}
+  {%- else -%}
+    {{title}}
+  {%-endif-%}
+{%- endmacro %}
+
+{% macro biblink(key) %}{{ link('bib:' + key, title_attr='userd') }}{%endmacro %}
+
+{% macro link_if_exists(object, title=None) %}
+  {% if object.id or deref(object, fail=False) %}
+    {{ link(object,title) }}
+  {% else %}
+    {{ title or object }}
+  {% endif %}
+{% endmacro %}
+
+{% macro navbar(page) %}
+  <!-- Picture on Top -->
+   <header class="hidden-xs container-fluid" style="width:100%; background-image:url('{{ page.relative_root }}/static/img/header.jpg'); background-repeat:no; background-size:cover; background-position:50% 50%; height:100px;">
+      <div class="container" style="padding-top:15px; padding-bottom:15px;">
+        <div class="row">
+          <div class="col-xs-6">
+            <a href="https://www.uni-hannover.de"><img alt="Logo of Leibniz Universität Hannover" src="{{ page.relative_root }}/static/img/luh.png" height="70"/></a>
+            </div>
+          <div class="col-xs-6 text-right">
+            <div class="header-links">
+                 <a href="https://et-inf.uni-hannover.de">Fakultät ET-INF</a><br/>
+              <a title="Raumreservierungen am SRA" href="https://ksrv.sra.uni-hannover.de/">Raumreservierung</a><br/>
+              <a title="Sitemap - eine hierarchische Auflistung der Inhalte" href="{{ deref('sitemap').href | link}}">Sitemap</a><br/>
+              <a title="Kontakt"  href="{{ deref('kontakt').href | link}}">Kontakt</a>
+            </div>
+            <a href="{{ page.relative_root }}/index.html"><img alt="Logo of SRA"  style="float:right; padding-left:10px;" src="{{ page.relative_root }}/static/img/sra.png" height="70"/></a>
+          </div>
+        </div>
+      </div>
+   </header>
+
+  <nav class="navbar navbar-default" data-spy="affix" data-offset-top="200">
+    <div class='container'>
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="{{ page.relative_root + '/index.html' }}">Home</a>
+        </div>
+        <div id="navbar" class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            {% for top in (deref('main').menu or deref('main').children)%}
+              {% if deref(top).get('menu.list', true) %}
+                <li {% if page is __child_of(deref(top)) %}class="active"{% endif %}>{{ link(top) }} </li>
+              {% endif %}
+            {% endfor %}
+            <hr class="visible-xs" />
+            {% if page.id != 'main' %}
+              {{ sidebar_menu_helper(page, page, 'visible-xs') }}
+            {% endif %}
+          </ul>
+        </div><!--/.nav-collapse -->
+    </div>
+  </nav>
+{% endmacro %}
+
+{% macro breadcrumbs(page) %}
+  {% if page.id != 'main' %}
+    <ol class="breadcrumb">
+      <li><a href="https://www.et-inf.uni-hannover.de/institute.html">ET-INF</a></li>
+      {{ breadcrumbs_recursion(page) }}
+    </ol>
+  {% endif %}
+{% endmacro %}
+
+{% macro breadcrumbs_recursion(page) %}
+  {% if page and deref(page.id, fail=False) %}
+    {% if deref(page.parent,fail=False) %}
+      {{ breadcrumbs_recursion(deref(page.parent)) }}
+    {% endif %}
+    <li>{{ link(page) }}</li>
+  {% endif %}
+{% endmacro %}
+
+{% macro sidebar(page) %}
+  {% if page.id == 'main' %}
+    {{ caller() }}
+  {% else %}
+    <div class="row">
+      <div id="sidebar" class="col-xs-12 col-md-3 hidden-xs">
+        <ul class="nav nav-pills nav-stacked">
+          {{ sidebar_menu_helper(page,page) }}
+        </ul>
+      </div>
+      <div class="col-xs-12 col-md-9">
+        {{ caller() }}
+      </div>
+    </div>
+  {% endif %}
+{% endmacro %}
+
+{% macro sidebar_menu_helper(page, current, classes="") %}
+  {% if current is __has_menu_children %}
+    {% for child in ((current.menu or current.children) + current.get('menu.append',[]) + page.get('menu.append',[])) %}
+      {% if not deref(child).get('menu.list', true) %}
+      {% elif not deref(child).href %}
+        <li class="headline {{classes}}">{{ deref(child).label or deref(child).title }}</li>
+      {% else %}
+        <li class="{{classes}}{% if page is __child_of(child) %} active{% endif %}">{{ link(child,None) }}
+            {% if page is __child_of(child) %}
+              <ul class="{{classes}} nav nav-pills nav-submenu nav-stacked">
+                {% for submenu in __get_submenu(page) %}
+                  {% if deref(submenu).get('menu.list', true) %}
+                    <li class="{{classes}}{% if page is __child_of(submenu) %} active{% endif %}">{{ link(submenu, None) }}</li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            {% endif %}
+        </li>
+      {% endif %}
+    {% endfor %}
+  {% elif deref(current.parent, fail=False) %}
+    {{ sidebar_menu_helper(page, deref(current.parent), classes) }}
+  {% endif %}
+{% endmacro %}
+
+{% macro sitemap(node) %}
+{% if node.get('menu.list', true) %}
+  <li>
+    {% if node.href %}
+      {{ link(node) }} <span class="text-muted">[{{node.id}}]</span>
+    {% else %}
+      <strong>{{ node.label or node.title }}</strong>
+    {% endif %}
+   {% if node.children %}
+   <ul>
+   {% for n in node.children | sorted %}
+   {{ sitemap(deref(n)) }}
+   {% endfor %}
+   </ul>
+   {% endif %}
+</li>
+{% endif %}
+{% endmacro %}
+
+{% macro asset(name, title=None, type='link') %}
+   {% if type == 'link' %}
+   <a href="{{ page.relative_root }}{{__asset(name)}}">{{ title or name }}</a>
+   {% else %}
+   {{ "Unsupportet asset type " + type | warn}}
+   {% endif  %}
+{% endmacro %}
+
+{% macro manpage(title, section=1) %}
+<a href="https://manpages.debian.org/jump?q={{title}}.{{section}}">{{title}}({{section}})</a>
+{% endmacro %}

@@ -1,0 +1,33 @@
+{% import 'macros.jinja'  as macros %}
+{% import 'show.jinja'  as show %}
+{% import 'navigation.jinja'  as nav %}
+
+
+
+{% macro maketitle(thesis) %}
+
+<h1>{{ thesis.title }}</h1>
+
+<ul>
+  <li><strong>Typ der Arbeit:</strong> {{ macros.thesis_type(thesis) }}</li>
+  {% if not page.pdf %}
+  <li><strong>Status der Arbeit:</strong> {{ macros.thesis_status(thesis) }}</li>
+  {% endif %}
+  {% if thesis.projects %}
+     <li><strong>Projekte:</strong> {% for p in thesis.projects %}{{ nav.link(p) }}{%endfor%}</li>
+  {% endif %}
+  <li><strong>Betreuer:</strong> {{ show.people_list(thesis['thesis-supervisor']) }}</li>
+  {% if thesis['thesis-student'] %}
+     <li><strong>Bearbeiter:</strong> {{ thesis['thesis-student'] }}</li>
+  {% endif %}
+  {% if thesis['thesis-start'] and false %}
+     <li><strong>Beginn der Arbeit:</strong> {{ thesis['thesis-start'].strftime('%d. %b %Y') }}
+  {% endif %}
+  {% if thesis['thesis-end'] %}
+     <li><strong>Ende der Arbeit:</strong> {{ thesis['thesis-end'].strftime('%d. %b %Y') }}
+  {% endif %}
+  {% if thesis['thesis-document'] %}
+     <li><strong>Ausarbeitung:</strong> <a href="{{thesis['thesis-document'] | link}}">[PDF]</a>
+  {% endif %}
+</ul>
+{% endmacro %}

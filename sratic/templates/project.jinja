@@ -1,0 +1,58 @@
+{% import 'macros.jinja'  as macros %}
+{% import 'show.jinja'  as show %}
+{% import 'navigation.jinja'  as nav %}
+
+{% macro makeheader(project) %}
+<h1>{{project.short_title}}: {{project.title}}</h1>
+{% endmacro %}
+
+{% macro makefooter(project) %}
+{# if there are news, list only the 2 most recent news #}
+{% set news=object_list('news', project=project.id) %}
+{% if news %}
+<h2>Latest News</h2>
+{% for item in news | sorted | reverse | batch (2) | first %}
+{{ show.show(item) }}
+{% endfor %}
+{# if there are more than 2 news AND a *_news page exists, add link to that #}
+{% if (news | count) > 2 and deref(project.id ~'_news', fail=False)  %}
+{{ nav.link(project.id~'_news', title='More news...') }}
+{% endif %} 
+{% endif %}
+
+
+{% if object_list('publication', project=project.id) %}
+<h2>Publications</h2>
+{{ show.list('publication', project=project.id) }}
+{% endif %}
+
+{% if object_list('thesis', project=project.id) %}
+<h2>Theses</h2>
+
+{% if object_list('thesis', project=project.id, status=['open']) %}
+<h3>Open Topics</h3>
+{{ show.list('thesis', project=project.id, status=['open']) }}
+{% endif %}
+
+{% if object_list('thesis', project=project.id, status=['reserved', 'running']) %}
+<h3>Currently Running</h3>
+{{ show.list('thesis', project=project.id, status=['reserved', 'running']) }}
+{% endif %}
+
+{% if object_list('thesis', project=project.id, status=['finished']) %}
+<h3>Finished Theses</h3>
+{{ show.list('thesis', project=project.id, status=['finished']) }}
+{% endif %}
+
+{% endif %}
+{% endmacro %}
+
+
+{% macro makenews(project) %}
+
+<h2>{{nav.link(project)}} News And Trivia</h2>
+{% for item in object_list('news', maxage=32768, project=project) | sorted | reverse %}
+{{ show.show(item) }}
+{% endfor %}
+
+{% endmacro %}

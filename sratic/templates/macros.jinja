@@ -1,0 +1,15 @@
+{% macro thesis_status(thesis) %}
+{{ {'reserved': 'reserviert',
+    'open': 'offen',
+    'running': 'laufend',
+    'draft': 'in Planung',
+    'finished': 'abgeschlossen'}[thesis['thesis-status']] }}
+{% endmacro %}
+
+{% macro thesis_type(thesis) %}
+{{ {'BA': 'Bachelorarbeit',
+    'MA': 'Masterarbeit',
+	'BAMA': 'Bachelor-/Masterarbeit'
+    }[thesis['thesis-type']] }}
+{% endmacro %}
+

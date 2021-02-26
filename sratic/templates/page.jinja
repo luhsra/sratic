@@ -1,0 +1,80 @@
+{% import 'navigation.jinja'  as nav %}
+
+<!DOCTYPE html>
+<html {% if page.lang %}lang="{{ page.lang  }}"{% endif %}>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <link rel="shortcut icon" href="{{ page.relative_root }}/static/favicon.ico" type="image/x-icon">
+    <link rel="alternate" type="application/atom+xml" title="SRA News" href="{{R}}/news.xml">
+    <title>{{ data.site.short_title }} - {{nav.name(page)}}</title>
+
+    <!-- Bootstrap -->
+    <link href="{{ page.relative_root }}/static/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="{{ page.relative_root }}/static/sra.css" rel="stylesheet" />
+    {% if page.permalink %}
+    <link href="{{ page.permalink }}" rel="bookmark" />
+    {% endif %}
+    {% if isA(page, "publication") %}
+    <meta name="citation_title" content="{{page.title | e}}"/>
+    {% for author in page.bibtex.authors %}
+    <meta name="citation_author" content="{{author | e}}"/>
+    {% endfor %}
+    {% if page.bibtex.pdf or page.bibtex['x-pdf'] %}
+    <meta name="citation_pdf_url" content="{{page.bibtex.pdf or page.bibtex['x-pdf'] | link_absolute }}"/>
+    {% endif %}
+    <meta name="citation_publication_date" content="{{page.bibtex.year}}"/>
+    {% endif %}
+
+  </head>
+  <body>
+    <div class="content">
+      {{ nav.navbar(page) }}
+
+      <div class="container" id="page-{{page.id}}">
+         {{ nav.breadcrumbs(page) }}
+         {% call nav.sidebar(page) %}
+                {{ body }}
+         {% endcall %}
+      </div><!-- /.container -->
+    </div>
+
+    <footer class="footer">
+      <div class="container">
+        <span class="text-muted">Last modified: {{page['last-modification'] }} by {{ nav.link_if_exists(page['last-author']) }} [id:{% if page["permalink.href"] %}<a href="{{ page.relative_root }}/{{page["permalink.href"]}}">{{ page.id }}</a>{% else %}{{page.id}}{%endif%}]
+        {% if page["permalink.alias.href"] %}
+        [alias:<a href="{{ page.relative_root }}/{{(page["permalink.alias.href"])}}">{{ page["permalink.alias"] }}</a>]
+        {% endif %}| <a href="{{ page.relative_root }}/impressum.html">Impressum</a> | <a href="https://www.uni-hannover.de/de/datenschutzerklaerung/">Datenschutzerkl&auml;rung</a> </span>
+      </div>
+    </footer>
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script language="JavaScript" type="text/javascript" src="{{page.relative_root}}/static/bootstrap/js/jquery.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script language="JavaScript" type="text/javascript" src="{{ page.relative_root }}/static/bootstrap/js/bootstrap.min.js"></script>
+    <script language="JavaScript" type="text/javascript">
+        var shiftWindow = function() {
+            $(document.getElementById(location.hashObj)).removeClass("highlighted");
+            location.hashObj = location.hash.substr(1);
+            $(document.getElementById(location.hashObj)).addClass("highlighted");
+            if (location.hashObj) scrollBy(0, -50);
+        };
+        $(document).ready(function() {
+          location.hashObj = null;
+          if (location.hash) shiftWindow();
+          window.addEventListener("hashchange", shiftWindow);
+        });
+    </script>
+    <script language="JavsScript" type="text/javascript">
+        window.onload = function() {
+            $("h2, h3").each(function(idx, headline) {
+                if (headline.id) {
+                    $('<a class="headlineref" style="font-size: 12px; margin-left: 5px; vertical-align: middle;" href="#'+headline.id+'">&#128279;</a>').appendTo(headline);
+                }
+            });
+        }
+    </script>
+  </body>
+</html>

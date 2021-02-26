@@ -68,7 +68,8 @@ class SRAticEnvironment(Environment):
     def __init__(self, template_dir):
         Environment.__init__(self, trim_blocks=True,
                              lstrip_blocks=True,
-                             loader=FileSystemLoader([template_dir]),
+                             loader=FileSystemLoader([template_dir,
+                                                      os.path.join(os.path.dirname(__file__), "templates")]),
                              extensions=[YamlExtension])
         self.filters["expand"] = self.expand
         self.filters["warn"] = self.__warn
