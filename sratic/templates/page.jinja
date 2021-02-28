@@ -33,11 +33,6 @@
   <body>
     {{ layout.layout(page, body) }}
 
-
-    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-    <script language="JavaScript" type="text/javascript" src="{{page.relative_root}}/static/bootstrap/js/jquery.min.js"></script>
-    <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script language="JavaScript" type="text/javascript" src="{{ page.relative_root }}/static/bootstrap/js/bootstrap.min.js"></script>
     <script language="JavaScript" type="text/javascript">
         var shiftWindow = function() {
             $(document.getElementById(location.hashObj)).removeClass("highlighted");

@@ -57,7 +57,10 @@ class YAMLFragment:
         self.path = filename
         with open(filename) as stream:
             try:
-                self.data = yaml.load(stream, Loader=yaml.Loader)
+                if filename.endswith(".myml"):
+                    self.data = list(yaml.load_all(stream, Loader=yaml.Loader))
+                else:
+                    self.data = yaml.load(stream, Loader=yaml.Loader)
             except Exception as x:
                 logging.error("Error in %s", filename)
                 raise x
@@ -147,7 +150,7 @@ class YAMLDataFactory:
             return self.__cache[filename]
         # Load data file
         fragment = YAMLFragment(self.__config)
-        if filename.endswith(".yml"):
+        if filename.endswith("yml"):
             fragment.load_from_file(filename)
         else:
             # Scrape data from file preface

@@ -23,11 +23,11 @@
     <span class="newsdate">{{ news.date }}</span>
     <span class="newstitle">{{ news.title }}</span>
   </div>
-  <div class="media {{ css_classes | join(' ') }}">
-    <div class="media-body news-content" style="width: auto">
+  <div class="media d-flex {{ css_classes | join(' ') }}">
+    <div class="media-body flex-grow-1 news-content" style="width: auto">
       {{ news.text | expand }}
       {% if news.image %}
-        <div class="hidden-lg hidden-md" >
+        <div class="hidden-lg hidden-md d-md-none" >
           <a href="{{ news.image | link }}">
             <img class="img-responsive" src="{{ news.image | link }}" width="25%"/>
           </a>
@@ -36,7 +36,7 @@
     </div> {# media-body #}
     {% if news.image %}
     <div class="media-right">
-      <a class="visible-lg visible-md" href="{{ news.image | link }}">
+      <a class="visible-lg visible-md d-none d-md-block" href="{{ news.image | link }}">
         <img src="{{ news.image | link }}" style="max-width:200px; max-height:150px; padding-left: 10px;"/>
       </a>
     </div>
@@ -68,7 +68,7 @@
       <a href="{{nav.link(config.ref, href_only=True) }}" title="{{ config.title }}">
    {% endif %}
    {% if badge %}
-      <span class="label label-{{config.css or "default"}}">{{badge}}</span>
+      <span class="badge bg-{{config.css or "secondary"}} label label-{{config.css or "default"}}">{{badge}}</span>
    {% endif %}
    {% if config.href or config.ref%}
       </a>
@@ -165,19 +165,19 @@
 				{{ __link_notnull('http://arxiv.org/abs/' + entry.get('eprint',''), entry.eprint, entry.eprint) }}
 			{%- endif -%}
 			<!-- Trigger the modal with a button -->
-			[<a href="#" data-toggle="modal" data-target="#modal{{ __id(entry) }}">BibTex</a>]
+			[<a href="#" data-toggle="modal" data-bs-toggle="modal" data-bs-target="#modal{{ __id(entry) }}" data-target="#modal{{ __id(entry) }}">BibTex</a>]
 			<div id="modal{{ __id(entry) }}" class="modal fade" role="dialog">
 				<div class="modal-dialog modal-lg">
 					<div class="modal-content">
 						<div class="modal-header">
-							<button type="button" class="close" data-dismiss="modal">&times;</button>
+							<button type="button" class="close" data-bs-dismiss="modal" data-dismiss="modal">&times;</button>
 							<h4 class="modal-title">BibTex Entry</h4>
 						</div>
 						<div class="modal-body">
 							<pre>{{entry.bibtex}}</pre>
 						</div>
 						<div class="modal-footer">
-							<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+							<button type="button" class="btn btn-default" data-bs-dismiss="modal" data-dismiss="modal">Close</button>
 						</div>
 					</div>
 				</div>
@@ -191,8 +191,9 @@
 {% set object = deref(object) %}
 {% set css_classes = css_classes + object.get('css_classes', []) %}
 {% if isA(object, 'thesis') %}
-<div class="object thesis media {{ css_classes | join(' ') }}">
+<div class="object thesis {{ css_classes | join(' ') }}">
   <p class="media-heading"><strong>{{ nav.link(object,compact=false) }}</strong></p>
+  <div class="media d-flex">
   {% if not page.pdf %}
     <div class="media-left">
       {% if object['thesis-image'] %}
@@ -203,7 +204,7 @@
     </div>
   {% endif %}
 
-  <div class="media-body" style="width: auto">
+  <div class="media-body flex-grow-1" style="width: auto">
     Typ: <i> {{ macros.thesis_type(object) }}</i><br/>
     {% if not page.pdf %}
       Status: <i> {{ macros.thesis_status(object) }}</i><br/>
@@ -225,7 +226,7 @@
         <a href="{{object['thesis-document'] | link}}">[PDF]</a>
       {% endif %}
     {% endif %}
-  </div>
+  </div></div>
 
 </div>
 {% elif isA(object, 'news') %}
