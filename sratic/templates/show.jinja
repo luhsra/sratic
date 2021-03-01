@@ -11,6 +11,36 @@
   {%- endfor -%}
 {% endmacro %}
 
+{% set views = namespace() %}
+
+{% macro show(object, css_classes=[]) %}
+  {% set object = deref(object) %}
+  {% set vars = namespace() %}
+  {% set css_classes = css_classes + object.get('css_classes', []) %}
+  {% for type in object.type %}
+    {% if views[type] and not vars.printed %}
+      {% set vars.printed = True %}
+      {{ views[type](object, css_classes, **kwargs) }}
+    {% endif %}
+  {% endfor %}
+  {% if not vars.printed %}
+    {{ ('Cannot show object of type ' + str(object.type)) | warn }}
+    [{{ object.type }}:{{ object.id }}]
+  {% endif%}
+{% endmacro %}
+
+{% macro list(type) %}
+{% for obj in object_list(type, **kwargs) | sorted %}
+{% if caller %}
+   {{ caller(obj) }}
+{% else %}
+   {{ show(obj) }}
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+
+
 {% macro __link_notnull(href, name, pred=True) %}
 	{% if href and pred %}
 		<span class="bib-link"><a href="{{href | link}}">{{name}}</a></span>
@@ -23,11 +53,11 @@
     <span class="newsdate">{{ news.date }}</span>
     <span class="newstitle">{{ news.title }}</span>
   </div>
-  <div class="media d-flex {{ css_classes | join(' ') }}">
-    <div class="media-body flex-grow-1 news-content" style="width: auto">
+  <div class="media {{ css_classes | join(' ') }}">
+    <div class="media-body news-content" style="width: auto">
       {{ news.text | expand }}
       {% if news.image %}
-        <div class="hidden-lg hidden-md d-md-none" >
+        <div class="hidden-lg hidden-md" >
           <a href="{{ news.image | link }}">
             <img class="img-responsive" src="{{ news.image | link }}" width="25%"/>
           </a>
@@ -44,8 +74,9 @@
   </div>
 </div>
 {% endmacro %}
+{% set views.news = show_news %}
 
-{% macro show_modkat(modkat) %}
+{% macro show_modkat(modkat, css_classes) %}
   {% for k in ('Lehrveranstaltung (LV)', 'Angebotsart', 'Frequenz', 'Prüfer', 'Prüfung Wahlmerkmal', 'SWS Kompakt') %}
     {% if k in modkat %}
       <b>{{k}}:</b> {{ modkat[k] }}<br/>
@@ -58,6 +89,7 @@
   {% endfor %}
   </ul>
 {% endmacro %}
+{% set views.modkat = show_modkat %}
 
 {% macro show_publication_badge(badge, type='default') %}
    {% set config = data.bibliography.badges.get(badge)
@@ -68,31 +100,32 @@
       <a href="{{nav.link(config.ref, href_only=True) }}" title="{{ config.title }}">
    {% endif %}
    {% if badge %}
-      <span class="badge bg-{{config.css or "secondary"}} label label-{{config.css or "default"}}">{{badge}}</span>
+      <span class="label label-{{config.css or "default"}}">{{badge}}</span>
    {% endif %}
    {% if config.href or config.ref%}
       </a>
    {% endif %}
-{% endmacro %}
+ {% endmacro %}
+ {% set views.publication_badge = show_publication_badge %}
 
-{% macro show_publication(object) %}
+{% macro show_publication(object, css_classes) %}
 	{% set entry = object.bibtex %}
-	<dl class='publication object' id='{{ object.id }}'>
+	<dl class='publication object {{" ".join(css_classes) }}' id='{{ object.id }}'>
 		<dt class='title'>
 			{% if entry.userd %}
-                           {{ show_publication_badge(entry.userd.split(' ')[0]) }} {# eg. OSPERT '17 #}
+                           {{ views.publication_badge(entry.userd.split(' ')[0]) }} {# eg. OSPERT '17 #}
 			{% endif %}
-                        {{ show_publication_badge(entry.entrysubtype) }}
+                        {{ views.publication_badge(entry.entrysubtype) }}
 			{% if entry.userc %}
                           {% set benchmark = entry.userc.split(':')[0] %}
                           {% set ranking   = entry.userc.split(':')[1] %}
                           {% if benchmark in data.bibliography.badges %}
-                                {{ show_publication_badge(ranking, benchmark) }}
+                                {{ views.publication_badge(ranking, benchmark) }}
                           {% else %}
                              {{ error("Unknown Conference Ranking: {} (available: {})", benchmark, data.rankings.keys() ) }}
                           {% endif %}
 			{% endif %}
-                        {{ show_publication_badge(entry.get('x-award'), 'x-award') }}
+                        {{ views.publication_badge(entry.get('x-award'), 'x-award') }}
 			{% if entry.userd or entry.entrysubtype or entry.userc or entry['x-award'] %}
                             <br/>
 			{% endif %}
@@ -186,14 +219,12 @@
 		</dd>
 	</dl>
 {% endmacro %}
+{% set views.publication = show_publication %}
 
-{% macro show(object, css_classes=[]) %}
-{% set object = deref(object) %}
-{% set css_classes = css_classes + object.get('css_classes', []) %}
-{% if isA(object, 'thesis') %}
+{% macro show_thesis(object, css_classes) %}
 <div class="object thesis {{ css_classes | join(' ') }}">
   <p class="media-heading"><strong>{{ nav.link(object,compact=false) }}</strong></p>
-  <div class="media d-flex">
+  <div class="media">
   {% if not page.pdf %}
     <div class="media-left">
       {% if object['thesis-image'] %}
@@ -204,7 +235,7 @@
     </div>
   {% endif %}
 
-  <div class="media-body flex-grow-1" style="width: auto">
+  <div class="media-body" style="width: auto">
     Typ: <i> {{ macros.thesis_type(object) }}</i><br/>
     {% if not page.pdf %}
       Status: <i> {{ macros.thesis_status(object) }}</i><br/>
@@ -229,11 +260,11 @@
   </div></div>
 
 </div>
-{% elif isA(object, 'news') %}
-  {{ show_news(object, css_classes=css_classes) }}
-{% elif isA(object, 'modkat') %}
-  {{ show_modkat(object) }}
-{% elif isA(object, 'person') %}
+{% endmacro %}
+{% set views.thesis = show_thesis %}
+
+
+{% macro show_person(object, css_classes) %}
   <div id="{{object.id}}" class="object person {{ css_classes | join(' ') }}" style='width:200px; text-align:center;'><br/>
     <a href="{{object.href | link}}">
        <img src="{{ (object['image'] or '/static/placeholder.png') | link }}" style="height:200px; max-width:150px; max-height:200px;"/>
@@ -241,11 +272,17 @@
        {{ nav.link(object,compact=false,link_attr="Bitte kein Extra <a> Tag vergeben.") }}
     </a>
   </div>
-{% elif isA(object, 'project') %}
+{% endmacro %}
+{% set views.person = show_person %}
+
+{% macro show_project(object, css_classes) %}
   <dl class="object project"><dt>{{ nav.link(object, None, compact=true) }}: {{object.title}}</dt>
     <dd>{{ object.summary }}</dd>
   </dl>
-{% elif isA(object, 'evaluation') %}
+{% endmacro %}
+{% set views.project = show_project %}
+
+{% macro show_evaluation(object, css_classes) %}
   <span>{{ nav.link(object.lecture, deref('lehre-' + object.lecture.semester).short_title) }} •
         {% if object.note %}{{object.note}} •{% endif %}
         {% for person in  object.lecture.staff %}
@@ -256,24 +293,8 @@
         {{ nav.asset(object.pdf, "Evaluation (PDF)") }} •
         Bewertung: {{ object.score }}
   </span>
-{% elif isA(object, 'publication') %}
-  {{ show_publication(object) }}
-
-{% else %}
-{{ ('Cannot show object of type ' + str(object.type)) | warn }}
-[{{ object.type }}:{{ object.id }}]
-{% endif %}
 {% endmacro %}
-
-{% macro list(type) %}
-{% for obj in object_list(type, **kwargs) | sorted %}
-{% if caller %}
-   {{ caller(obj) }}
-{% else %}
-   {{ show(obj) }}
-{% endif %}
-{% endfor %}
-{% endmacro %}
+{% set views.evaluation = show_evaluation%}
 
 
 {% macro show_lectures(person) %}
