@@ -1,3 +1,5 @@
+export LC_ALL=en_US.UTF-8
+
 PYTHON := PYTHONPATH=$(PWD) python3
 SRATIC = ${PYTHON} -m sratic
 UNAME_S := $(shell uname -s)
@@ -49,8 +51,7 @@ deploy-jenkins: sync PHONY
 deploy-jenkins-force: sync PHONY
 	cd sra.src; ${SRATIC} -t ../sra.templates  -d /proj/www/lab.sra.uni-hannover.de/ --force --dump-objects
 
-
-sra.deploy.gitlab: sync PHONY
+sra.deploy: sync PHONY
 	cd sra.src; ${SRATIC} -t ../sra.templates  -d /proj/www/from-gitlab --dump-objects
 
 
