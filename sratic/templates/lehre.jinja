@@ -38,7 +38,7 @@ nav.link('studip') }} erforderlich. Bitte registrieren Sie sich (falls
 noch nicht geschehen) für {{ nav.link('studip') }} und tragen Sie sich
 dort in die
 {% if page and page.studip and page.studip|length == 1 and page.studip[0]|length == 1 %}
-    <a href="https://studip.uni-hannover.de/dispatch.php/course/details/?sem_id={{page.studip[0][0]}}" target="_blank">entsprechende Veranstaltung</a>
+    <a href="{{studip.base_url}}/dispatch.php/course/details/?sem_id={{page.studip[0][0]}}" target="_blank">entsprechende Veranstaltung</a>
 {% else %}
     entsprechende Veranstaltung
 {% endif %}
@@ -48,7 +48,7 @@ Prüfungsankündigung ist in Stud.IP zu finden (Reiter
 {% if page and page.studip and page.studip[0]|length != 1 %}
     <p><strong>Stud.IP Veranstaltungen</strong><br/>
     {% for name,id in page.studip %}
-        <a href="https://studip.uni-hannover.de/dispatch.php/course/details/?sem_id={{id}}" target="_blank">{{name}}</a><br/>
+        <a href="{{studip.base_url}}/dispatch.php/course/details/?sem_id={{id}}" target="_blank">{{name}}</a><br/>
     {% endfor %}
     </p>
 {% endif %}
