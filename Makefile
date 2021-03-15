@@ -1,5 +1,7 @@
 export LC_ALL=en_US.UTF-8
 
+PWD=$(shell pwd)
+
 PYTHON := PYTHONPATH=$(PWD) python3
 SRATIC = ${PYTHON} -m sratic
 UNAME_S := $(shell uname -s)
@@ -56,12 +58,9 @@ sra.deploy: sync PHONY
 
 
 # TUHH: Operating System Group
-
 osg.www: sync PHONY
 	mkdir -p osg.www
 	cd osg.src; ${SRATIC} -t ../osg.templates  -d ../osg.www
-
-
 
 
 .PHONY: PHONY
