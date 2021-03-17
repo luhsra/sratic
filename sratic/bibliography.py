@@ -149,7 +149,9 @@ def load_bibtex(filename, modify_data=None):
 
             field_p = field + "s"
             assert field_p not in e, f"Invalid Bibtex field: {field_p} in entry {e['id']}"
-            e[field_p] = [x.strip() for x in e[field].replace('\n', ' ').split(' and ')]
+            e[field_p] = [x.strip() for x in re.split(' and ', e[field].replace('\n', ' '),
+                                                      flags=re.IGNORECASE)
+                                                      ]
             for i, a in enumerate(e[field_p]):
                 if ',' in a:
                     a = a.split(',', 1)
