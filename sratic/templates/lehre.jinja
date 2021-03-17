@@ -29,6 +29,11 @@
  </div>
 {%- endmacro %}
 
+{% macro studip_list() %}
+    {% for name,id in page.studip %}
+        <li><a href="{{studip.base_url}}/dispatch.php/course/details/?sem_id={{id}}" target="_blank">{{name}}</a></li>
+    {% endfor %}
+{% endmacro %}
 
 {% macro studip() %}
 <h2> Anmeldung und weitere Infos</h2>
@@ -42,9 +47,7 @@ dort in die
 {% else %}
     entsprechende Veranstaltung
 {% endif %}
-ein. Die aktuelle
-Prüfungsankündigung ist in Stud.IP zu finden (Reiter
-„Prüfungsankündigung“).</p>
+ein. </p>
 {% if page and page.studip and page.studip[0]|length != 1 %}
     <p><strong>Stud.IP Veranstaltungen</strong><br/>
     {% for name,id in page.studip %}
@@ -52,5 +55,4 @@ Prüfungsankündigung ist in Stud.IP zu finden (Reiter
     {% endfor %}
     </p>
 {% endif %}
-
 {% endmacro %}
