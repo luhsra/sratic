@@ -62,5 +62,9 @@ osg.www: sync PHONY
 	mkdir -p osg.www
 	cd osg.src; ${SRATIC} -t ../osg.templates  -d ../osg.www
 
+# Build the docker Image
+osg.docker:
+	docker build -t collaborating.tuhh.de:5005/e-exk4/internal/www docker
+	docker push     collaborating.tuhh.de:5005/e-exk4/internal/www
 
 .PHONY: PHONY
