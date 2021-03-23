@@ -31,7 +31,7 @@
 
 {% macro studip_list() %}
     {% for name,id in page.studip %}
-        <li><a href="{{studip.base_url}}/dispatch.php/course/details/?sem_id={{id}}" target="_blank">{{name}}</a></li>
+        <li><a href="{{data.studip.base_url}}/dispatch.php/course/details/?sem_id={{id}}" target="_blank">{{name}}</a></li>
     {% endfor %}
 {% endmacro %}
 
