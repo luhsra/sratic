@@ -50,9 +50,13 @@ dort in die
 ein. </p>
 {% if page and page.studip and page.studip[0]|length != 1 %}
     <p><strong>Stud.IP Veranstaltungen</strong><br/>
-    {% for name,id in page.studip %}
-        <a href="{{data.studip.base_url}}/dispatch.php/course/details/?sem_id={{id}}" target="_blank">{{name}}</a><br/>
+    {% for name, cid in page.studip %}
+        {{ studip_link(name, cid) }}<br/>
     {% endfor %}
     </p>
 {% endif %}
+{% endmacro %}
+
+{% macro studip_link(name, cid) %}
+   <a href="{{data.studip.base_url}}/dispatch.php/course/details/?sem_id={{cid}}" target="_blank">{{name}}</a>
 {% endmacro %}
