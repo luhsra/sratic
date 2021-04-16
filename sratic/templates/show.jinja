@@ -122,7 +122,7 @@
                           {% if benchmark in data.bibliography.badges %}
                                 {{ views.publication_badge(ranking, benchmark) }}
                           {% else %}
-                             {{ error("Unknown Conference Ranking: {} (available: {})", benchmark, data.rankings.keys() ) }}
+                             {{ error("Unknown Conference Ranking: {} (available: {})", benchmark, data.bibliography.badges.keys() ) }}
                           {% endif %}
 			{% endif %}
                         {{ views.publication_badge(entry.get('x-award'), 'x-award') }}

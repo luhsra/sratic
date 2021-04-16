@@ -90,7 +90,7 @@ class Generator:
         return ret
 
     def raise_error(self, msg, *fmt):
-        loggig.error(msg, *fmt)
+        logging.error(msg, *fmt)
         raise RuntimeError()
 
     def __link_absolute(self, elem):
