@@ -466,7 +466,8 @@ def main():
         for page in work:
             gen.do_page(page)
             # For thesis we generate PDFs
-            if gen.objects.isA(page.data, 'thesis'):
+            generate_pdfs = gen.data_dir.data.get('site', {}).get('thesis', {}).get('generate_pdfs', True)
+            if generate_pdfs and gen.objects.isA(page.data, 'thesis'):
                 gen.do_page(page, pdf=True)
         if child == 0:
             sys.exit(0)

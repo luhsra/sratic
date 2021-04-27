@@ -58,6 +58,10 @@ sra.deploy: sync PHONY
 
 
 # TUHH: Operating System Group
+osg: PHONY
+	mkdir -p osg.www
+	cd osg.src; ${SRATIC} -t ../osg.templates  -d ../osg.www
+
 osg.www: sync PHONY
 	mkdir -p osg.www
 	cd osg.src; ${SRATIC} -t ../osg.templates  -d ../osg.www
