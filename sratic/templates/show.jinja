@@ -192,6 +192,7 @@
 			{{ __link_notnull(entry['x-url'], 'URL') }}
 			{{ __link_notnull(entry['x-slides'], 'Slides') }}
 			{{ __link_notnull(entry['x-video'], 'Video') }}
+			{{ __link_notnull(entry['x-video-teaser'], 'Teaser Video') }}
 			{{ __link_notnull(entry['x-rawdata'], 'Raw Data') }}
 			{{ __link_notnull('http://dx.doi.org/' + entry.get('doi',''), entry.doi, entry.doi) }}
 			{%- if not entry['doi'] -%}
