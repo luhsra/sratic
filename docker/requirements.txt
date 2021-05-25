@@ -1,0 +1,4 @@
+bibtexparser
+pyyaml
+jinja2
+markdown
