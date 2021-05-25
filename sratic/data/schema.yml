@@ -248,6 +248,12 @@ lecture:
     type: string
   studip:
     type: [[string]]
+  number:
+    type: int
+    doc: How many lectures of this kind take place in this semester.
+  studygroup:
+    type: string
+    doc: Master or Bachelor
 
 evaluation:
   <<: *type_object
@@ -267,3 +273,12 @@ evaluation:
     required: no
     type: string
     doc: Zum Beispiel Übung oder andere genauere Spezifzierung
+
+service:
+  <<: *type_object
+  entrysubtype:
+    required: true
+    type: string
+  year:
+    required: no 
+

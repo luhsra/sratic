@@ -382,6 +382,9 @@ class ObjectStore:
                     is_alias=None,
                     lecture=None,
                     staff=None,
+                    semester=None,
+                    studygroup=None,
+                    series=None,
                     ):
         ret = []
         captured = set()
@@ -421,8 +424,14 @@ class ObjectStore:
             ) or (
                 type == 'lecture'
                 and (not staff or [p for p in obj['staff'] if p['id'] == staff])
+                and (not semester or ('semester' in obj and obj['semester'] == semester))
+                and (not series or 'series' in obj and obj['series'] == series)
+                and (not studygroup or ('studygroup' in obj and obj['studygroup'] in wrap_list(studygroup)))
             ) or (
                 type == 'post'
+            ) or (
+                type == 'service'
+                and (not entrysubtype or (obj['entrysubtype'] in wrap_list(entrysubtype)))
             )
             ):
                 if id(obj) not in captured:
@@ -445,6 +454,11 @@ class ObjectStore:
                 return x['sortkey']
             if self.isA(x, 'evaluation'):
                 return x['lecture']['sortkey'] + x.get('note', "")
+            if self.isA(x, 'service'):
+                if('year' in x):
+                    return str(x['year'])
+                else:
+                    return x['title']
             if 'id' in x:
                 return x['id']
             return str(x)
