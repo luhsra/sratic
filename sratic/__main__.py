@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
+import unicodedata
 import argparse
 import shutil
 import datetime
@@ -425,7 +426,7 @@ def main():
             elif ext in asset_suffixes | {'.jpg', '.jpeg', '.png', '.pdf', '.svg', '.otf', '.gif',
                          '.xml', '.css', ".js", '.ico', '.ttf', '.woff',
                          '.woff2', '.eot', '.html', '.xls', '.xlsx' } or 'htaccess' in fn:
-                assets.append(fn.lstrip("."))
+                assets.append(unicodedata.normalize("NFC", fn.lstrip(".")))
                 if not osp.exists(osp.dirname(dst)):
                     os.makedirs(osp.dirname(dst))
                 if not osp.exists(dst) or \
