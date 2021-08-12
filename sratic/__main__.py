@@ -61,6 +61,8 @@ class Generator:
         self.exporter = ObjectExporter(self.objects)
         self.env.tests["__has_menu_children"] = self.objects.has_menu_children
         self.env.tests["__child_of"] = self.objects.is_child_of
+        self.env.tests["__teaching_sose"] = self.objects.teaching_sose
+        self.env.tests["__teaching_wise"] = self.objects.teaching_wise
         self.env.globals["object_list"] = self.objects.object_list
         self.env.filters["object_unique"] = self.objects.object_unique
         self.env.globals["isA"] = self.objects.isA

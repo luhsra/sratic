@@ -282,6 +282,12 @@ class ObjectStore:
                 break
         return False
 
+    def teaching_sose ( self, elem ):
+        return elem.startswith("lehre-ss")
+
+    def teaching_wise ( self, elem ):
+        return elem.startswith ("lehre-ws")
+
     @staticmethod
     def __init__lecture(obj):
         """For a lecture we fill semester, series and parent from the ID"""
