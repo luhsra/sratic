@@ -29,6 +29,8 @@ anchor:
   anchor:
     doc: "Anchor within page"
 
+separator:
+  <<: *type_object
 
 # link: This type only makes sense as a separate mixin to another type
 #       (like person) that is hosted externally on another webpage.
