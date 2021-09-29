@@ -243,7 +243,7 @@
     {% endif %}
     Supervisors: <i> {{ people_list(object['thesis-supervisor']) }}</i><br/>
     {% if object.projects and page.id not in object.projects %}
-      Project: {% for p in wrap_list(object.projects) %}{{nav.link(p)}}{%endfor%}<br/>
+      Project: {% for p in wrap_list(object.projects) %}{% if not loop.first %}, {%endif%}{{nav.link(p)}}{%endfor%}<br/>
     {% endif %}
     {% if object['thesis-student'] %}
         Bearbeiter: {{ object['thesis-student'] }}

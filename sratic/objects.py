@@ -23,6 +23,7 @@ class ObjectStore:
 
         self.object_constructors = {
             'lecture': self.__init__lecture,
+            'thesis': self.__init__thesis,
         }
 
         # We keep a pointer to the current set of referenced objects
@@ -283,7 +284,8 @@ class ObjectStore:
         return False
 
     def teaching_sose ( self, elem ):
-        return elem.startswith ("lehre-ss")
+        return elem.startswith("lehre-ss")
+
     def teaching_wise ( self, elem ):
         return elem.startswith ("lehre-ws")
 
@@ -300,6 +302,16 @@ class ObjectStore:
         obj['series'] = series
         obj['parent'] = 'lehre-' + semester
         obj['modkat'] = 'modkat-' + semester + '-' + series
+
+    @staticmethod
+    def __init__thesis(obj):
+        """For a thesis we fill the year from the parent directory, if not explicitly set"""
+        if 'thesis-end' in obj:
+            obj['thesis-year'] = str(obj['thesis-end'].year)
+        elif 'thesis-start' in obj:
+            obj['thesis-year'] = str(obj['thesis-start'].year)
+        else:
+            obj['thesis-year'] = osp.basename(osp.dirname(obj['__file__']))
 
     def get_submenu(self, page):
         """Search for the first parent with a submenu.

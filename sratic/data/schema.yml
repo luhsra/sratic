@@ -115,6 +115,9 @@ thesis:
   thesis-end:
     doc: "!!timestamp YYYY-MM-DD"
     type: date
+  thesis-year:
+    doc: "Year the thesis was started or finished"
+    type: str
   thesis-supervisor:
     doc: Eine Liste von Personen IDs
     required: true
