@@ -266,7 +266,6 @@ lecture:
     type: string
     doc: Master or Bachelor
   credits:
-    type: string
     doc: number of credit points
   exam:
     type: string
