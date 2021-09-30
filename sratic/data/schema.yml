@@ -238,6 +238,9 @@ lecture:
     required: true
     type: string
     doc: This is automatically derived from the ID (e.g., Sommer 2017)
+  sem:
+    type: string
+    doc: summer or wintersemester
   series:
     required: true
     type: string
@@ -259,6 +262,35 @@ lecture:
   studygroup:
     type: string
     doc: Master or Bachelor
+  skilllevel:
+    type: string
+    doc: Master or Bachelor
+  credits:
+    type: string
+    doc: number of credit points
+  exam:
+    type: string
+    doc: type of the exam (oral, written, ...)
+  room:
+    type: string
+    doc: the room(s) used for a lecture
+  timeslot:
+    doc: timeslots of lectures, exercises, ...
+  supervisor:
+    type: [object.person]
+    doc: list of supervisors
+  tutor:
+    type: [object.person]
+    doc: list of tutors
+  lecturer:
+    type: [object.person]
+    doc: list of lecturers
+  color:
+    type: string
+    doc: CSS-class for the html bubble element
+  bubble:
+    type: string
+    doc: acronym/short form of the lecture for the bubble
 
 evaluation:
   <<: *type_object
