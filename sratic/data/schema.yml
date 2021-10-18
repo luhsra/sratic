@@ -105,7 +105,7 @@ thesis:
     type: string
   thesis-type:
     required: true
-    enum: [BA, MA, BAMA]
+    enum: [BA, MA, BAMA, RP]
   thesis-status:
     required: true
     enum: [draft, open, reserved, running, finished]

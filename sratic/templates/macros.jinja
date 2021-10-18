@@ -9,7 +9,8 @@
 {% macro thesis_type(thesis) %}
 {{ {'BA': 'Bachelorarbeit',
     'MA': 'Masterarbeit',
-	'BAMA': 'Bachelor-/Masterarbeit'
+    'BAMA': 'Bachelor-/Masterarbeit',
+    'RP': 'Forschungsprojekt'
     }[thesis['thesis-type']] }}
 {% endmacro %}
 
