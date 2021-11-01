@@ -58,7 +58,7 @@
       {{ news.text | expand }}
       {% if news.image %}
         <div class="hidden-lg hidden-md" >
-          <a href="{{ news.image | link }}">
+          <a href="{{ (news['image-url'] or news.image) | link }}">
             <img class="img-responsive" src="{{ news.image | link }}" width="25%"/>
           </a>
         </div>
@@ -66,7 +66,7 @@
     </div> {# media-body #}
     {% if news.image %}
     <div class="media-right">
-      <a class="visible-lg visible-md d-none d-md-block" href="{{ news.image | link }}">
+      <a class="visible-lg visible-md d-none d-md-block" href="{{ (news['image-url'] or news.image) | link }}">
         <img src="{{ news.image | link }}" style="max-width:200px; max-height:150px; padding-left: 10px;"/>
       </a>
     </div>

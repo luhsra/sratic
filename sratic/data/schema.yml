@@ -222,6 +222,8 @@ news:
     type: bool
   image:
     type: url
+  image-url:
+    type: url
 
 lecture:
   <<: *type_object
