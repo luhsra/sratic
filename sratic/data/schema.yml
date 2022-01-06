@@ -320,3 +320,25 @@ service:
   year:
     required: no 
 
+event:
+  <<: *type_object
+  # An event that is scheduled at a specific time. For example a talk
+  title:
+    required: true
+    type: string
+  date:
+    required: true
+    type: datetime
+  date_end:
+    required: true
+    type: datetime
+  speaker:
+    type: string
+    required: false
+  location:
+    type: string
+    required: false
+  related:
+    type: list
+  format:
+    type: string

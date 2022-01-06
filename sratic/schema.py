@@ -65,6 +65,7 @@ def type_check_and_resolve(pattern, value, objects):
                       'str': str,
                       'string':str,
                       'date': datetime.date,
+                      'datetime': datetime.datetime,
                       'float': float,
                       'url': str,
                       'list': list,
