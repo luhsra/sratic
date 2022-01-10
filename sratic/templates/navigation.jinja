@@ -41,6 +41,8 @@
 {% macro link_if_exists(object, title=None) %}
   {% if object.id or deref(object, fail=False) %}
     {{ link(object,title) }}
+  {% elif object.startswith and object.startswith("http") %}
+    <a href="{{object}}">{{ title or object }}</a>
   {% else %}
     {{ title or object }}
   {% endif %}
