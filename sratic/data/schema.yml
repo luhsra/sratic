@@ -162,7 +162,7 @@ person:
   image:
     doc: "URL to an picture, showing that person"
   mail:
-    required: true
+    required: false
   phone:
     doc: Die Telefonnummer, sofern Mitarbeiter am Institut
   room:
