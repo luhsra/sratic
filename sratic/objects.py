@@ -96,12 +96,15 @@ class ObjectStore:
             page.data['type'] = Type
 
             # Step 1.4: Sanity check aliases
+            if page.data['id'] in data_dir.data['permalinks']:
+                assert 'permalink.alias' not in page.data, "Page %s (%s): global permalink alias conflicts with page-local permalink.alias. Remove either one" % (page.data['id'], page.data['__file__'])
+                page.data['permalink.alias'] = data_dir.data['permalinks'][page.data['id']]
             if 'permalink.alias' in page.data:
                 alias = page.data['permalink.alias']
                 assert alias not in aliases, "Alias %s is duplicated: %s, %s" % (alias, page.data['__file__'],
                                                                              aliases[alias].data['__file__'])
                 aliases[alias] = page
-                page.data['permalink.alias.href'] = '/p/' + alias
+                page.data['permalink.alias.href'] = 'p/' + alias
 
 
         # Step 2: Generate an Index for all objects that are defined in the data directory

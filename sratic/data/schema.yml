@@ -185,6 +185,8 @@ bibtex: {}
 # The empty, allow anything type modkat
 modkat: {}
 
+permalinks: {}  
+
 publication:
   <<: *type_object
   # A publication is some kind of document that was published during
