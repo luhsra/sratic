@@ -96,7 +96,7 @@ class ObjectStore:
             page.data['type'] = Type
 
             # Step 1.4: Sanity check aliases
-            if page.data['id'] in data_dir.data['permalinks']:
+            if page.data['id'] in data_dir.data.get('permalinks', {}):
                 assert 'permalink.alias' not in page.data, "Page %s (%s): global permalink alias conflicts with page-local permalink.alias. Remove either one" % (page.data['id'], page.data['__file__'])
                 page.data['permalink.alias'] = data_dir.data['permalinks'][page.data['id']]
             if 'permalink.alias' in page.data:
