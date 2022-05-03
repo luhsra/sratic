@@ -403,6 +403,7 @@ class ObjectStore:
                     entrysubtype=None,
                     award=None,
                     category = None,
+                    category_exclude = 'doubleblind',
                     core=None,
                     maxage=None,
                     show_list=False,
@@ -441,6 +442,7 @@ class ObjectStore:
                 and (not entrysubtype or obj['bibtex'].get('entrysubtype') in wrap_list(entrysubtype))
                 and (not award  or obj['bibtex'].get('x-award'))
                 and (not category or category in obj['bibtex'].get('category'))
+                and (not category_exclude or ('category' in obj['bibtex'] and not category_exclude in obj['bibtex'].get('category')))
                 and (not core or (obj['bibtex'].get('userc') and obj['bibtex'].get('userc').split(":")[1] in wrap_list(core)))
                 and (not author or (author in (obj['bibtex'].get('authors',[]) \
                                             + obj['bibtex'].get('editors',[]))))
