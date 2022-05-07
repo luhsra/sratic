@@ -441,7 +441,7 @@ class ObjectStore:
                 and (not bibtype or obj['bibtex']['ENTRYTYPE'].lower() in wrap_list(bibtype))
                 and (not entrysubtype or obj['bibtex'].get('entrysubtype') in wrap_list(entrysubtype))
                 and (not award  or obj['bibtex'].get('x-award'))
-                and (not category or category in obj['bibtex'].get('category'))
+                and (not category or self.filter_categories(obj, category))
                 and (not category_exclude or ('category' in obj['bibtex'] and not category_exclude in obj['bibtex'].get('category')))
                 and (not core or (obj['bibtex'].get('userc') and obj['bibtex'].get('userc').split(":")[1] in wrap_list(core)))
                 and (not author or (author in (obj['bibtex'].get('authors',[]) \
@@ -493,3 +493,22 @@ class ObjectStore:
                 return x['id']
             return str(x)
         return sorted(elem, key = sort_key)
+
+    def filter_categories(self, obj, categories):
+        obj_categories = obj['bibtex'].get('category')
+        union_cats = [c.strip() for c in categories.split('|')]
+
+        for u_cat in union_cats:
+            intersect_cats = [c.strip() for c in u_cat.split('+')]
+
+            categories_apply = True
+
+            for i_cat in intersect_cats:
+                if not i_cat in obj_categories:
+                    categories_apply = False
+                    break
+            
+            if categories_apply:
+                return True
+        
+        return False
