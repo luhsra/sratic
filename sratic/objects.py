@@ -462,6 +462,8 @@ class ObjectStore:
             ) or (
                 type == 'service'
                 and (not entrysubtype or (obj['entrysubtype'] in wrap_list(entrysubtype)))
+            ) or (
+                type == 'event_lfd'
             )
             ):
                 if id(obj) not in captured:

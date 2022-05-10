@@ -347,3 +347,17 @@ event:
     type: list
   format:
     type: string
+
+event_lfd:
+  <<: *type_object
+  title:
+    required: true
+    type: string
+  date:
+    required: true
+    type: date
+  text:
+    required: true
+    type: string
+  href:
+    doc: "The URI of the external webpage"
