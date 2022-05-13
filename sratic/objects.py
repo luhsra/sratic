@@ -480,7 +480,7 @@ class ObjectStore:
             if self.isA(x, 'publication'):
                 year =  int(x['bibtex'].get('year', '0'))
                 return str(10000-year) + x.get('title', '') + x['id']
-            if self.isA(x, 'news') or self.isA(x, 'post'):
+            if self.isA(x, 'news') or self.isA(x, 'post') or self.isA(x, 'event_lfd'):
                 return (x['date'], x['title'])
             if self.isA(x, 'lecture'):
                 return x['sortkey']
