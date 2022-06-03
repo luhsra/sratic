@@ -361,3 +361,7 @@ event_lfd:
     type: string
   href:
     doc: "The URI of the external webpage"
+  maxage:
+    type: int
+    doc: "How many days should this new item be displayed"
+ 

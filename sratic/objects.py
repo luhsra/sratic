@@ -413,6 +413,7 @@ class ObjectStore:
                     semester=None,
                     studygroup=None,
                     series=None,
+                    upcoming=None,
                     ):
         ret = []
         captured = set()
@@ -464,6 +465,10 @@ class ObjectStore:
                 and (not entrysubtype or (obj['entrysubtype'] in wrap_list(entrysubtype)))
             ) or (
                 type == 'event_lfd'
+                and (upcoming is None
+                    or upcoming == False and obj['date'] < datetime.date.today()
+                    or upcoming and obj['date'] >= datetime.date.today())
+                and (not maxage or (datetime.date.today() - obj['date']).days < obj.get('maxage', maxage))
             )
             ):
                 if id(obj) not in captured:
@@ -495,6 +500,9 @@ class ObjectStore:
                 return x['id']
             return str(x)
         return sorted(elem, key = sort_key)
+
+    def upcoming(self, events_lfd):
+        return [e for e in events_lfd if e.date >= datetime.datetime.now()]
 
     def filter_categories(self, obj, categories):
         obj_categories = obj['bibtex'].get('category')
