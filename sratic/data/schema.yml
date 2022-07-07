@@ -4,6 +4,9 @@ object: &type_object
     type: string
   type:
     doc: "Every object can have one or more types. Therefore, this can be a string or an list"
+  object_aliases:
+    type: list
+    doc: "Additional Object IDs under which this object can be referenced"
   show.list:
     doc: Should the object be listed by show.list?
     type: bool

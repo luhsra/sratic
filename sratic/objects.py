@@ -113,6 +113,12 @@ class ObjectStore:
             objects[obj['id']] = obj
             obj['__file__'] = data_dir.path
 
+            if 'object_aliases' in obj:
+                for alias in obj['object_aliases']:
+                    assert alias not in objects, \
+                        "Alias (object_aliases) %s is duplicated" % (alias)
+                    objects[alias] = obj
+
         # Step 3: Generate publication object, if they are not present.
         for obj in list(objects.values()):
             if self.isA(obj, 'bibtex'):
@@ -151,6 +157,8 @@ class ObjectStore:
         # Step 8: Generate alias IDs for some objects
         for obj in list(objects.values()):
             aliases = []
+            if self.isA(obj, 'person') and obj['name'] not in objects:
+                aliases.append(obj['name'])
 
             # Permalink aliases provoke an object alias
             if 'permalink.alias' in obj:
