@@ -151,8 +151,6 @@ class ObjectStore:
         # Step 8: Generate alias IDs for some objects
         for obj in list(objects.values()):
             aliases = []
-            if self.isA(obj, 'person'):
-                aliases.append(obj['name'])
 
             # Permalink aliases provoke an object alias
             if 'permalink.alias' in obj:
