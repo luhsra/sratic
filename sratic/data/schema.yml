@@ -299,7 +299,7 @@ evaluation:
   <<: *type_object
   # An evaluation Ereignis for a lecture
   score:
-    required: true
+    required: false
     type: float
     doc: Globalindikator
   lecture:

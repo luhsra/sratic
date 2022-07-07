@@ -291,8 +291,8 @@
             {{ nav.link(person) }} •
           {% endif %}
         {% endfor %}
-        {{ nav.asset(object.pdf, "Evaluation (PDF)") }} •
-        Bewertung: {{ object.score }}
+        {{ nav.asset(object.pdf, "Evaluation (PDF)") }}
+        {% if object.score %} • Bewertung: {{ object.score }}{% endif %}
   </span>
 {% endmacro %}
 {% set views.evaluation = show_evaluation%}
