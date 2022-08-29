@@ -421,6 +421,8 @@ def main():
                 logging.info("Symlink: %s -> %s", dst, symlink)
                 if os.path.lexists(dst):
                     os.unlink(dst)
+                if not osp.exists(osp.dirname(dst)):
+                    os.makedirs(osp.dirname(dst))
                 os.symlink(symlink, dst)
             elif ext in [".md", ".page"]:
                 page = gen.yaml_data_factory.load_file(fn)

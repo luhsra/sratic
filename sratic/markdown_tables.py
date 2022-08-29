@@ -1,13 +1,9 @@
-#!/usr/bin/env python
-"""
-Grid Tables Extension for Python-Markdown
-=========================================
+"""Grid tables extension for Python-Markdown
 
-Add parsing of grid tables to Python-Markdown. These differ from simple tables
-in that they can contain multi-lined text and (in my opinion) are cleaner
-looking than simpe tables. They were inspired by reStructuredText's grid table
-syntax. This extension was loosely based on the 'table' extension for
-Python-Markdown by Waylan Limberg.
+Add parsing of grid tables to Python-Markdown. These differ from simple tables in that they can
+contain multi-lined text and (in my opinion) are cleaner looking than simpe tables. They were
+inspired by reStructuredText's grid table syntax. This extension was loosely based on the 'table'
+extension for Python-Markdown by Waylan Limberg.
 
 An example of a grid table:
 
@@ -42,7 +38,7 @@ This should be generated as (but colspans and rowspans may not work at the momen
         </tbody>
     </table>
 
-Licensed under GPLv3 by [Alexander Abbott aka Smartboy](http://smartboyssite.net)
+Licensed under GPLv3 by Alexander Abbott.
 
 Links referenced during creation of this plugin:
 https://gist.github.com/1855764
@@ -52,28 +48,37 @@ http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html#grid-tables
 http://docutils.svn.sourceforge.net/viewvc/docutils/trunk/docutils/docutils/parsers/rst/tableparser.py?revision=7320&content-type=text%2Fplain
 """
 
+import re
+
 import markdown
-from markdown.util import etree
-import re, string, pdb
+import xml.etree.ElementTree as etree
+
+
 
 class GridTableExtension(markdown.Extension):
-    def extendMarkdown(self, md, md_globals):
-        md.parser.blockprocessors.add('grid-table',
-                                      GridTableProcessor(md.parser),
-                                      '<hashheader')
+    def extendMarkdown(self, md, **kwargs): # , md_globals):
+        blockprocessors = md.parser.blockprocessors
+        try:
+            # Try using `.add` for compatibility with older versions of the Markdown package.
+            blockprocessors.add('grid-table', GridTableProcessor(md.parser), '<hashheader')
+        except AttributeError:
+            # Use a priority of 65 to be processed before the `hashheader` extension.
+            blockprocessors.register(GridTableProcessor(md.parser), 'grid-table', 65)
 
-def makeExtension(configs={}):
-    return GridTableExtension()
 
-class GridTableCell(object):
+
+def makeExtension(*args, **kwargs):
+    return GridTableExtension(*args, **kwargs)
+
+
+class GridTableCell:
     """
     A single cell in a grid table. A cell's boundaries are determined by a
     starting point in the top left (start_row and start_col), as well as a
     width and a height. It also has a colspan and rowspan count for cells that
     span multiple rows or columns.
     """
-    def __init__(self, start_row, start_col, width=1, height=1, colspan=1,
-                 rowspan=1, text=""):
+    def __init__(self, start_row, start_col, width=1, height=1, colspan=1, rowspan=1, text=""):
         self.text = text
         self._start_row = max(0, start_row)
         self._start_col = max(0, start_col)
@@ -82,30 +87,14 @@ class GridTableCell(object):
         self._colspan = max(1, colspan)
         self._rowspan = max(1, rowspan)
 
-    def __str__(self):
-        """
-        For simplicity, the string representation is also the python code
-        representation.
-        """
-        return self.__repr__()
-
     def __repr__(self):
-        """
-        This is the python representation of the cell. If ran with eval, the
-        output from this function would create a duplicate instance of this
-        class.
-        """
-        retval = "GridTableCell(start_row={}, start_col={}, width={}, "
-        retval += "height={}, colspan={}, rowspan={}, text={})"
-        return retval.format(repr(self._start_row), repr(self._start_col),
-                             repr(self._width), repr(self._height),
-                             repr(self._colspan), repr(self._rowspan),
-                             repr(self.text))
+        return (
+            f'GridTableCell(start_row={self._start_row!r}, start_col={self._start_col!r}, '
+            f'width={self._width!r}, height={self._height!r}, colspan={self._colspan!r}, '
+            f'rowspan={self._rowspan!r}, text={self.text!r})'
+        )
 
     def __eq__(self, other):
-        """
-        Checks if another cell is equivalent to this one.
-        """
         return (self.start_row == other.start_row and
                 self.start_col == other.start_col and
                 self.width == other.width and
@@ -115,9 +104,7 @@ class GridTableCell(object):
 
     @property
     def start_row(self):
-        """
-        Returns the starting row for the cell.
-        """
+        """Starting row for the cell."""
         return self._start_row
 
     @start_row.setter
@@ -130,9 +117,7 @@ class GridTableCell(object):
 
     @property
     def start_col(self):
-        """
-        Returns the starting column for the cell.
-        """
+        """Starting column for the cell."""
         return self._start_col
 
     @start_col.setter
@@ -145,9 +130,7 @@ class GridTableCell(object):
 
     @property
     def width(self):
-        """
-        Returns the width (in number of characters) of the cell.
-        """
+        """Width (in number of characters) of the cell."""
         return self._width
 
     @width.setter
@@ -160,9 +143,7 @@ class GridTableCell(object):
 
     @property
     def height(self):
-        """
-        Returns the height (in number of characters) of the cell.
-        """
+        """Height (in number of characters) of the cell."""
         return self._height
 
     @height.setter
@@ -175,9 +156,7 @@ class GridTableCell(object):
 
     @property
     def colspan(self):
-        """
-        Returns the number of columns that this cell spans.
-        """
+        """Number of columns that this cell spans."""
         return self._colspan
 
     @colspan.setter
@@ -190,9 +169,7 @@ class GridTableCell(object):
 
     @property
     def rowspan(self):
-        """
-        Returns the number of rows that this cell spans.
-        """
+        """Number of rows that this cell spans."""
         return self._rowspan
 
     @rowspan.setter
@@ -221,7 +198,8 @@ class GridTableCell(object):
         """
         return self._start_col + self._width
 
-class GridTableRow(object):
+
+class GridTableRow:
     """
     A single row in a grid table, which can contain any number of cells. Cells
     within a row may not start at the same index as where the row starts, since
@@ -303,9 +281,7 @@ class GridTableRow(object):
 
     @property
     def start_row(self):
-        """
-        The index of the line in the block at which this row starts.
-        """
+        """The index of the line in the block at which this row starts."""
         return self._start_row
 
     @property
@@ -345,11 +321,15 @@ class GridTableRow(object):
             return 0
         return self._cells[-1].end_col
 
-class GridTable(object):
-    """
-    A grid table in its entirity. The start row and start column should be 0, 0
-    but can be set differently depending on the block. The width and height are
-    how many characters wide and high the table is.
+
+class GridTable:
+    """A grid table in its entirety.
+
+    Parameters:
+        start_row: Should be 0, but can be set differently depending on the block.
+        start_col: Should be 0, but can be set differently depending on the block.
+        width: How many characters wide the table is.
+        height: How many characters tall the table is.
     """
     def __init__(self, start_row, start_col, height, width, first_row_header=False):
         self._rows = [GridTableRow(start_row, is_header=first_row_header)]
@@ -371,23 +351,16 @@ class GridTable(object):
         return self._rows[-1].start_row, self._rows[-1].start_col
 
     def add_cell(self, cell):
-        """
-        Adds a cell to the last row in the table.
-        """
+        """Adds a cell to the last row in the table."""
         return self._rows[-1].add_cell(cell)
 
     def get_all_rows(self):
-        """
-        A generator that returns all rows in the table.
-        """
+        """Generator that returns all rows in the table."""
         for row in self._rows:
             yield row
 
     def get_all_cells_starting_at_column(self, column):
-        """
-        A generator which yields all cells in all rows that start at a specific
-        column.
-        """
+        """Generator that yields all cells in all rows that start at a specific column."""
         for row in self._rows:
             cell = row.get_cell_starting_at_this_row_at_column(column)
             if cell is not None:
@@ -422,32 +395,22 @@ class GridTable(object):
 
     @property
     def start_row(self):
-        """
-        Returns the index of the row (in number of characters) that the table
-        starts at.
-        """
+        """Index of the row (in number of characters) that the table starts at."""
         return self._start_row
 
     @property
     def start_col(self):
-        """
-        Returns the index of the column (in number of characters) that the
-        table starts at.
-        """
+        """Index of the column (in number of characters) that the table starts at."""
         return self._start_col
 
     @property
     def width(self):
-        """
-        Returns the width (in number of characters) of the table.
-        """
+        """Width (in number of characters) of the table."""
         return self._width
 
     @property
     def height(self):
-        """
-        Returns the height (in number of characters) of the table.
-        """
+        """Height (in number of characters) of the table."""
         return self._height
 
     @property
@@ -469,6 +432,7 @@ class GridTable(object):
     @property
     def has_header(self):
         return self._rows[0].is_header
+
 
 class GridTableProcessor(markdown.blockprocessors.BlockProcessor):
     """
@@ -524,10 +488,7 @@ class GridTableProcessor(markdown.blockprocessors.BlockProcessor):
         div.text = text
 
     def _header_exists(self, block):
-        """
-        Checks if a header exists. A header is defined by a row of '='
-        characters.
-        """
+        """Checks if a header exists. A header is defined by a row of '=' characters."""
         for row, i in zip(block, range(0, len(block))):
             if re.match(self._header_regex, row):
                 return True, i, self._get_header(block)
@@ -547,10 +508,7 @@ class GridTableProcessor(markdown.blockprocessors.BlockProcessor):
         return block
 
     def _render_rows(self, table, parent):
-        """
-        Renders all rows in a table into 'tr' elements, and all cells into all
-        'td' elements.
-        """
+        """Renders all rows in a table into 'tr' elements, and all cells into all 'td' elements."""
         header_cell_tag = 'th'
         body_cell_tag = 'td'
         rendered = []
