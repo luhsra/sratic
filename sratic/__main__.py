@@ -56,6 +56,8 @@ class Generator:
         self.env.filters["markdown"] = self.markdown
         self.env.filters["quote_plus"] = lambda u: quote_plus(u)
         self.env.globals['data'] = self.data_dir.data
+        self.env.globals["datetime"] = datetime.datetime
+
 
         self.objects = ObjectStore()
         self.exporter = ObjectExporter(self.objects)
@@ -441,7 +443,7 @@ def main():
                 pass
             elif 'data/bib/' in base:
                 pass
-            elif ext not in {'.dia'}:
+            elif ext not in {'.dia'} and '/.git/' not in fn:
                 logging.warning("Ignoring: %s", fn)
 
     read_git(pages)
