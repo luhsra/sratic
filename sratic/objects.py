@@ -9,6 +9,25 @@ import re
 import logging
 import uuid
 
+months = {
+    'jan': 1,
+    'feb': 2,
+    'mar': 3,
+    'apr': 4,
+    'may': 5,
+    'jun': 6,
+    'jul': 7,
+    'aug': 8,
+    'sep': 9,
+    'oct': 10,
+    'nov': 11,
+    'dec': 12,
+}
+
+def convert_month(month):
+    month = month.lower()[0:3]
+    return months[month]
+
 def wrap_list(lst):
     if not lst:
         return []
@@ -484,7 +503,12 @@ class ObjectStore:
                 return x
             if self.isA(x, 'publication'):
                 year =  int(x['bibtex'].get('year', '0'))
-                return str(10000-year) + x.get('title', '') + x['id']
+                month = x['bibtex'].get('month', '0')
+                if month.isdigit():
+                    month = int(month)
+                else:
+                    month = convert_month(month)
+                return str(10000-year) + str(100-month-1) + x.get('title', '') + x['id']
             if self.isA(x, 'news') or self.isA(x, 'post') or self.isA(x, 'event_lfd'):
                 return (x['date'], x['title'])
             if self.isA(x, 'lecture'):
