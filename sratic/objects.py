@@ -520,6 +520,8 @@ class ObjectStore:
                     return str(x['year'])
                 else:
                     return x['title']
+            if self.isA(x, 'thesis'):
+                return str(x.get('thesis-end', x["thesis-year"] + '-12-31')) + x["title"]
             if 'id' in x:
                 return x['id']
             return str(x)
