@@ -1,0 +1,10 @@
+id: news-2022-advent
+type: news
+title: "Advent(2) - The System-Call Advent Calendar"
+date: !!timestamp 2022-12-01
+image: !path /Advent/tux.png
+text: !markdown >
+     Winter is coming and the ELFs have a lot of work to do in Santa's Christmas village. And the ELFs, as the name suggests, are big fans of Linux to get this work done in time. However, until now they only know about those old a crusty interfaces that we inherited from UNIX/POSIX. So, they require your help! On the way, you can learn something about old and new system calls of Linux.<br/><br/>
+
+     The Operating System Group at the Hamburg University of Technology perpared a [System-Call Advent calendar](https://osg.tuhh.de/Advent/) with 24 strace-filled doors for you. On every day of December, you will find a system-call, a concept or an interface of Linux that you might or might not yet know. Behind the door, there is a short article and a small programming exercise, for which we provide a commented solution on the following day.
+

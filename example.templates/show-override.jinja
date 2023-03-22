@@ -1,0 +1,101 @@
+{% import 'navigation.jinja'  as nav %}
+{% import 'show.jinja'  as show %}
+{% import 'macros.jinja'  as macros %}
+
+{% set views = show.views %}
+
+{% macro show_thesis(object, css_classes) %}
+  <div class="object thesis border p-2 m-2 {{ css_classes | join(' ') }}">
+    <h4>{{ nav.link(object,compact=false) }}</h4>
+    <div class="d-flex">
+      {% if not page.pdf %}
+        {% if object['thesis-image'] %}
+          <img src="{{ object['thesis-image'] | link }}" style="max-width:128px; max-height:90px; padding-right: 10px;"/>
+        {% else %}
+          <span style="padding-left:40px">&nbsp;</span>
+        {% endif %}
+      {% endif %}
+
+      <div class="flex-grow-1">
+        Typ: <i> {{ macros.thesis_type(object) }}</i><br/>
+        {% if not page.pdf %}
+          Status: <i> {{ macros.thesis_status(object) }}</i><br/>
+        {% endif %}
+        Supervisors: <i> {{show.people_list(object['thesis-supervisor']) }}</i><br/>
+        {% if object.projects and page.id not in object.projects %}
+          Project: {% for p in wrap_list(object.projects) %}{{nav.link(p)}}{%endfor%}<br/>
+        {% endif %}
+        {% if object['thesis-student'] %}
+          Bearbeiter: {{ object['thesis-student'] }}
+          {% if object['thesis-end'] %}
+            (abgegeben: {{ object['thesis-end'].strftime('%d. %b %Y') }})
+          {% endif %}
+          <br/>
+        {% endif %}
+        {% if object.summary or object['thesis-document'] or object.href %}
+          {{ object.summary }}
+          {% if object['thesis-document'] and not page.pdf %}
+            <a href="{{object['thesis-document'] | link}}">[PDF]</a>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endmacro %}
+{% set views.thesis = show_thesis %}
+
+{% macro show_news(news, css_classes=[]) %}
+<div id="{{news.id}}" class="news object">
+  <div class="newsheader">
+    <span class="newsdate">{{ news.date }}</span>
+    <span class="newstitle">{{ news.title }}</span>
+  </div>
+  <div class="d-flex {{ css_classes | join(' ') }}">
+    <div class="news-content flew-grow-1">
+      {% if news.image %}
+        <div class="d-md-none" >
+          <a href="{{ (news['image-url'] or news.image) | link }}">
+            <img class="img-responsive" src="{{ news.image | link }}" width="25%"/>
+          </a>
+        </div>
+      {% endif %}
+      {{ news.text | expand }}
+    </div> {# media-body #}
+    {% if news.image %}
+      <a class="d-none d-md-block" href="{{ (news['image-url'] or news.image) | link }}">
+        <img src="{{ news.image | link }}" style="max-width:200px; max-height:150px; padding-left: 10px;"/>
+      </a>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}
+{% set views.news = show_news %}
+
+
+{% macro show_publication_badge(badge, type='default') %}
+   {% set config = data.bibliography.badges.get(badge)
+                   or data.bibliography.badges.get(type) %}
+   {% if config.href %}
+      <a href="{{config.href}}" title="{{ config.title }}">
+   {% elif config.ref %}
+      <a href="{{nav.link(config.ref, href_only=True) }}" title="{{ config.title }}">
+   {% endif %}
+   {% if badge %}
+      <span class="badge bg-{{config.css or "secondary"}}">{{badge}}</span>
+   {% endif %}
+   {% if config.href or config.ref%}
+      </a>
+   {% endif %}
+ {% endmacro %}
+ {% set views.publication_badge = show_publication_badge %}
+
+{% macro show_event(talk, css_classes) %}
+  <div class="object thesis border p-2 m-1 {{ css_classes | join(' ') }}">
+    <h5>{{nav.link_if_exists(talk.get("title_link"), talk.title | expand) }}</h5>
+    <em>Speaker: {{nav.link_if_exists(talk.get("speaker_link"), talk.speaker | expand)}} </em><br/>
+    Location: {{nav.link_if_exists(talk.get("location_link"), talk.location | expand)}}<br/>
+    Time: {{talk.date.strftime("%Y-%m-%d %H:%M")}} - {{talk.date_end.strftime("%Y-%m-%d %H:%M")}}
+    {% if talk.text %}<br/>{{talk.text}} {% endif %}
+  </div>
+{% endmacro %}
+{% set views.event = show_event %}

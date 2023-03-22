@@ -1,0 +1,17 @@
+---
+id: atom-feed
+formatter: jinja
+formatter.target: news.xml
+depends: [news]
+---
+{%- import 'atom.jinja' as atom -%}
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <title type="text">News System- und Rechnerarchitektur</title>
+    <updated>{{ __get_rfc3339_timestamp() }}</updated>
+
+{% for item in object_list('news', maxage=370) | sorted | reverse %}
+{{ atom.add_news_entry(item) }}
+{% endfor %}
+</feed>
+

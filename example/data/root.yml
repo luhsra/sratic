@@ -1,0 +1,66 @@
+site:
+  title: Operating System Group
+  thesis:
+    generate_pdfs: false
+  short_title: OSG
+  baseurl: https://www3.tuhh.de/osg
+  default_templates:
+    nav: 'navigation.jinja'
+    show: 'show.jinja'
+    show_override: 'show-override.jinja'
+
+studip:
+  base_url: "https://e-learning.tuhh.de/studip/"
+
+bibtex:
+  # x-own means: One of the authors was employed at the insitute
+  # at the time of writting/publication.
+  - !bibtex [bib/osg-own.bib,      {x-own: true}]
+
+bibliography:
+  transform-x-own:
+    filter:
+      author: Christian Dietrich
+    set:
+      x-own: true
+  badges:
+    CORE18:
+      title: "Venue Ranking (Method: Computing Research and Education Association of Australasia, CORE 2018)"
+      href: "http://www.core.edu.au/conference-portal"
+    CORE20:
+      title: "Venue Ranking (Method: Computing Research and Education Association of Australasia, CORE 2020)"
+      href: "http://www.core.edu.au/conference-portal"
+    CORE21:
+      title: "Venue Ranking (Method: Computing Research and Education Association of Australasia, CORE 2021)"
+      href: "http://www.core.edu.au/conference-portal"
+    Conference:
+      # ref: publications-conference
+    Journal:
+      # ref: publications-journal
+    Workshop:
+      # ref: publications-workshop
+    x-award:
+      css: primary
+      # ref: hall-of-fame
+    default:
+      css: secondary
+
+permalinks:
+    lehre-ss23-V_BSB:   'lehre-V_BSB'
+
+    
+projects:
+  - type: external_link
+    id:   DFG
+    name: DFG
+    href: http://www.dfg.de/
+
+people:
+  - type: [person, link]
+    id:   luh-lohmann
+    external: true
+    name-prefix: Prof. Dr.
+    name: Daniel Lohmann
+    mail: lohmann@sra.uni-hannover.de
+    href: https://www.sra.uni-hannover.de/People/lohmann/
+    image: https://www.sra.uni-hannover.de/People/lohmann/lohmann.jpg

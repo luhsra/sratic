@@ -62,8 +62,9 @@ def load_bibtex(filename, modify_data=None):
             pickle.dump((sha1sum, data), pickle_fd)
     parser_end = time.time()
     pickle.dumps(data)
-    logging.info("BibTeX Parsing/Loading[%s]: %.2f", os.path.basename(filename),
-                 parser_end - parser_start)
+    logging.info("BibTeX Parsing/Loading[%s]: %.2f, %d entries", os.path.basename(filename),
+                 parser_end - parser_start,
+                 len(data.entries))
     ret = {
         'entries': [],
         'years': defaultdict(list),

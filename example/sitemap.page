@@ -1,0 +1,7 @@
+---
+parent: main
+id: sitemap
+title: Sitemap
+depends: main
+---
+{{ nav.sitemap(deref('main')) }}

@@ -1,0 +1,9 @@
+---
+formatter: jinja
+formatter.target: osg-own.bib
+---
+{% set pubs = object_list('publication', own=true) %}
+{% for pub in pubs %}
+{{ pub.bibtex.bibtex}}
+
+{% endfor%}

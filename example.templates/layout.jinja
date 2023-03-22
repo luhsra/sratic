@@ -1,0 +1,147 @@
+{% import 'navigation.jinja' as nav%}
+
+{% macro html_header(page) %}
+  <link href="{{ page.relative_root }}/static/style.css" rel="stylesheet" />
+  <script language="JavaScript" type="text/javascript" src="{{page.relative_root}}/static/jquery.min.js"></script>
+  <script language="JavaScript" type="text/javascript" src="{{ page.relative_root }}/static/bootstrap/js/bootstrap.bundle.min.js"></script>{% endmacro %}
+
+  {% macro layout(page,body) %}
+    <div class="container d-flex flex-column" style="min-height: 100vh; background: #E4E4E4";>
+      <div class="row">
+        <div class="col-md-3 d-none d-md-block" style="background: white; height:80px;">
+          <a id="tuhh-logo" href="https://www.tuhh.de/" title="TUHH Website">
+            <img id="tuhh-logo-title" style="max-width: 67%; max-height:70px; margin: 10px 16%; " data-fallback="{{page.relative_root}}/static/img/tuhh-logo.gif" alt="TUHH" src="{{page.relative_root}}/static/img/tuhh-logo.svg">
+          </a>
+        </div>
+        <div class="col-xs-12 col-md-9 d-flex" style="background: #f8f8f8; height:80px;">
+          <div class="flex-grow-1 d-none d-sm-block" " style="position: relative;">
+            <span class="d-sm-none d-md-inline" style="position:absolute; top: 10px; font: 14px Arial, sans-serif, Verdana, Helvetica; color:#5076b3;;">E-EXK4</span>
+            <a style="position:absolute; bottom: 10px; text-decoration: none; font: 36px Arial, sans-serif, Verdana, Helvetica; color:#5076b3;;" href="{{nav.link('main', href_only=True)}}" title="Operating System Group">Operating System Group</a>
+          </div>
+          <div class="flex-grow-1 d-sm-none" " style="position: relative;">
+            <a style="position:absolute; bottom: 10px; text-decoration: none; font: 36px Arial, sans-serif, Verdana, Helvetica; color:#5076b3;;" href="{{nav.link('main', href_only=True)}}" title="Operating System Group">OSG</a>
+          </div>
+          <img style="height:90%; padding-top:10px; " alt="OSG Logo" data-fallback="{{page.relative_root}}/static/img/osg-logo.png" src="{{page.relative_root}}/static/img/osg-logo.svg" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-3 flex-fill"><!-- Empty --></div>
+        <div class="col-md-9" style="padding: 0px;">
+          <nav class="navbar navbar-expand-md navbar-light">
+            <a class="navbar-brand" href="{{ page.relative_root + '/index.html' }}">Home</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+              <ul class="navbar-nav mr-auto">
+                {% for top in (deref('main').topmenu )%}
+                  <li class="nav-item {% if page is __child_of(deref(top)) %}active{% endif %}">{{ nav.link(top, classes='nav-link') }} </li>
+                {% endfor %}
+                <hr class="d-block d-sm-none" />
+                {% if page.id != 'main' %}
+                  {{ sidebar_menu_helper(page, page, False, 'd-block d-sm-none') }}
+                {% endif %}
+              </ul>
+            </div><!--/.nav-collapse -->
+          </nav>
+          <div style="height: 150px; background: #FFF7EA url('{{page.relative_root}}/static/img/banner.jpg') 50% 50% no-repeat;">
+            <a class="float-end" style="text-decoration:none; font-size:40%; color:white" href="https://commons.wikimedia.org/wiki/Category:Technische_Universit%C3%A4t_Hamburg?uselang=de#/media/File:Geb%C3%A4ude_E,_der_sogenannte_Lindwurm.jpg">
+              Denis Sasinska, CC BY-SA 4.0
+            </a>
+          </div>
+          {{ breadcrumbs(page) }}
+        </div>
+      </div>
+      <div class="row flex-grow-1">
+        <div id="sidebar" class="col-sm-12 col-md-3 d-none d-sm-block">
+          <ul class="nav nav-pills flex-column">
+            {{ sidebar_menu_helper(page,page, True) }}
+          </ul>
+        </div>
+        <div class="col-xs-12 col-md-9" style="background:white; padding-top:15px;">
+          {{ body}}
+        </div>
+      </div>
+
+      <div class="row">
+        <footer class="footer">
+          <span class="text-muted">Last modified: {{page['last-modification'] }} by {{ nav.link_if_exists(page['last-author']) }} [id:{% if page["permalink.href"] %}<a href="{{ page.relative_root }}/{{page["permalink.href"]}}">{{ page.id }}</a>{% else %}{{page.id}}{%endif%}]
+            {% if page["permalink.alias.href"] %}
+              [alias:<a href="{{ page.relative_root }}/{{(page["permalink.alias.href"])}}">{{ page["permalink.alias"] }}</a>]{%endif%}
+              | <a href="{{ page.relative_root }}/impressum.html">Impressum</a> | <a href="https://www.tuhh.de/alt/tuhh/about-us/data-privacy.html">Datenschutzerkl&auml;rung</a></span>
+        </footer>
+      </div>
+    </div><!-- /.container -->
+
+{% endmacro %}
+
+
+{% macro breadcrumbs(page) %}
+  <nav style="--bs-breadcrumb-divider: '>';"  aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="https://www.tuhh.de">TUHH</a></li>
+      {{ breadcrumbs_recursion(page) }}
+    </ol>
+  </nav>
+{% endmacro %}
+
+{% macro breadcrumbs_recursion(page) %}
+  {% if page and deref(page.id, fail=False) %}
+    {% if deref(page.parent,fail=False) %}
+      {{ breadcrumbs_recursion(deref(page.parent)) }}
+    {% endif %}
+    <li class="breadcrumb-item">{{ nav.link(page) }}</li>
+  {% endif %}
+{% endmacro %}
+
+{% macro sidebar_menu_helper(page, current, sidebar=False, classes="") %}
+  {% if current is __has_menu_children and not current.get('menu.parent') %}
+    {% for child in ((current.menu or current.children) + current.get('menu.append',[]) + page.get('menu.append',[])) %}
+      {% if not deref(child).get('menu.list', true) %}
+      {% elif not deref(child).href %}
+         {% if child.image %}
+         {% if sidebar %} <li><img class="w-75 mx-auto d-block m-3" src="{{child.image}}"/></li>{% endif %}
+         {% else %}
+         <li class="headline {{classes}}">{{ deref(child).label or deref(child).title }}</li>
+        {% endif %}
+      {% else %}
+        <li class="nav-item {{classes}}{% if page is __child_of(child) %} active{% endif %}">{{ nav.link(child,None,classes='nav-link') }}
+          {% if page is __child_of(child) %}
+            <ul class="{{classes}} nav nav-pills nav-submenu nav-stacked">
+              {% for submenu in __get_submenu(page) %}
+                {% if deref(submenu).get('menu.list', true) %}
+                  <li class="{{classes}}{% if page is __child_of(submenu) %} active{% endif %}">{{ submenu.label or nav.link(submenu, None) }}</li>
+                {% endif %}
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </li>
+      {% endif %}
+    {% endfor %}
+  {% elif deref(current.parent, fail=False) %}
+    {{ sidebar_menu_helper(page, deref(current.parent), sidebar, classes) }}
+  {% endif %}
+{% endmacro %}
+
+{% macro sitemap(node) %}
+  {% if node.get('menu.list', true) %}
+    <li>
+      {% if node.href %}
+        {{ nav.link(node) }} <span class="text-muted">[{{node.id}}]</span>
+      {% else %}
+        <strong>{{ node.label or node.title }}</strong>
+      {% endif %}
+      {% if node.children %}
+        <ul>
+          {% for n in node.children | sorted %}
+            {{ sitemap(deref(n)) }}
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </li>
+  {% endif %}
+{% endmacro %}
+
+{% macro footer(page) %}
+{% endmacro %}
