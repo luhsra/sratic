@@ -30,11 +30,16 @@ class Generator:
     # pylint: disable=too-many-instance-attributes
     # Eleven is reasonable in this case.
     def __init__(self,
+                 source_directory,
                  template_paths=[],
                  destination_directory="../www",
                  options=None):
-        self.template_paths = template_paths
         self.destination_directory = destination_directory
+        self.source_directory = source_directory
+        self.template_paths = template_paths
+        self.template_paths += glob.glob("*/__templates",
+                                         root_dir=self.source_directory,
+                                         recursive=True)
         self.options = options
 
         self.yaml_data_factory = YAMLDataFactory(None)
@@ -386,7 +391,8 @@ def main():
     logging.getLogger("bibtexparser.bparser").setLevel(logging.WARNING)
     logging.getLogger("MARKDOWN").setLevel(logging.WARNING)
 
-    gen = Generator(destination_directory=args.destination,
+    gen = Generator(source_directory=os.path.abspath(os.curdir),
+                    destination_directory=args.destination,
                     template_paths=args.templates,
                     options=args)
 
