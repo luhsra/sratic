@@ -37,9 +37,12 @@ class Generator:
         self.destination_directory = destination_directory
         self.source_directory = source_directory
         self.template_paths = template_paths
-        self.template_paths += glob.glob("*/__templates",
-                                         root_dir=self.source_directory,
-                                         recursive=True)
+        org_cwd = os.getcwd()
+        try:
+            os.chdir(self.source_directory)
+            self.template_paths += glob.glob("*/__templates", recursive=True)
+        finally:
+            os.chdir(org_cwd)
         self.options = options
 
         self.yaml_data_factory = YAMLDataFactory(None)
