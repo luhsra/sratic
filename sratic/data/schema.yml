@@ -331,6 +331,9 @@ event:
   title:
     required: true
     type: string
+  title_link:
+    type: url
+    required: false
   date:
     required: true
     type: datetime
@@ -340,28 +343,22 @@ event:
   speaker:
     type: string
     required: false
+  speaker_link:
+    type: url
+    required: false
   location:
     type: string
     required: false
+  location_link:
+    type: url
+    required: false
+  text:
+    required: false
+    type: string
   related:
     type: list
   format:
     type: string
-
-event_lfd:
-  <<: *type_object
-  title:
-    required: true
-    type: string
-  date:
-    required: true
-    type: date
-  text:
-    required: true
-    type: string
-  href:
-    doc: "The URI of the external webpage"
   maxage:
     type: int
     doc: "How many days should this new item be displayed"
- 

@@ -483,10 +483,10 @@ class ObjectStore:
                 type == 'service'
                 and (not entrysubtype or (obj['entrysubtype'] in wrap_list(entrysubtype)))
             ) or (
-                type == 'event_lfd'
+                type == 'event'
                 and (upcoming is None
-                    or upcoming == False and obj['date'] < datetime.date.today()
-                    or upcoming and obj['date'] >= datetime.date.today())
+                    or (upcoming == False and obj['date'] < datetime.date.today())
+                    or (upcoming == True  and obj['date'] >= datetime.date.today()))
                 and (not maxage or (datetime.date.today() - obj['date']).days < obj.get('maxage', maxage))
             )
             ):
@@ -509,7 +509,7 @@ class ObjectStore:
                 else:
                     month = convert_month(month)
                 return str(10000-year) + str(100-month-1) + x.get('title', '') + x['id']
-            if self.isA(x, 'news') or self.isA(x, 'post') or self.isA(x, 'event_lfd'):
+            if self.isA(x, 'news') or self.isA(x, 'post') or self.isA(x, 'event'):
                 return (x['date'], x['title'])
             if self.isA(x, 'lecture'):
                 return x['sortkey']
@@ -526,9 +526,6 @@ class ObjectStore:
                 return x['id']
             return str(x)
         return sorted(elem, key = sort_key)
-
-    def upcoming(self, events_lfd):
-        return [e for e in events_lfd if e.date >= datetime.datetime.now()]
 
     def filter_categories(self, obj, categories):
         obj_categories = obj['bibtex'].get('category')
