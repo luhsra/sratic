@@ -9,25 +9,6 @@ import re
 import logging
 import uuid
 
-months = {
-    'jan': 1,
-    'feb': 2,
-    'mar': 3,
-    'apr': 4,
-    'may': 5,
-    'jun': 6,
-    'jul': 7,
-    'aug': 8,
-    'sep': 9,
-    'oct': 10,
-    'nov': 11,
-    'dec': 12,
-}
-
-def convert_month(month):
-    month = month.lower()[0:3]
-    return months[month]
-
 def wrap_list(lst):
     if not lst:
         return []
@@ -461,8 +442,8 @@ class ObjectStore:
                 and (not bibtype or obj['bibtex']['ENTRYTYPE'].lower() in wrap_list(bibtype))
                 and (not entrysubtype or obj['bibtex'].get('entrysubtype') in wrap_list(entrysubtype))
                 and (not award  or obj['bibtex'].get('x-award'))
-                and (not category or self.filter_categories(obj, category))
-                and (not category_exclude or ('x-category' in obj['bibtex'] and not category_exclude in obj['bibtex'].get('x-category')))
+                and (not category         or self.filter_categories(obj, category))
+                and (not category_exclude or not self.filter_categories(obj, category_exclude))
                 and (not core or (obj['bibtex'].get('userc') and obj['bibtex'].get('userc').split(":")[1] in wrap_list(core)))
                 and (not author or (author in (obj['bibtex'].get('authors',[]) \
                                             + obj['bibtex'].get('editors',[]))))
@@ -507,7 +488,11 @@ class ObjectStore:
                 if month.isdigit():
                     month = int(month)
                 else:
-                    month = convert_month(month)
+                    months = "jan,feb,mar,apr,may,jun,jul,aug,sep,oct,nov,dec".split(",")
+                    try:
+                        month = months.index(month.lower()[:3]) + 1
+                    except ValueError:
+                        pass
                 return str(10000-year) + str(100-month-1) + x.get('title', '') + x['id']
             if self.isA(x, 'news') or self.isA(x, 'post') or self.isA(x, 'event'):
                 return (x['date'], x['title'])
@@ -528,7 +513,7 @@ class ObjectStore:
         return sorted(elem, key = sort_key)
 
     def filter_categories(self, obj, categories):
-        obj_categories = obj['bibtex'].get('x-category')
+        obj_categories = obj['bibtex'].get('x-category', [])
         union_cats = [c.strip() for c in categories.split('|')]
 
         for u_cat in union_cats:
@@ -540,8 +525,8 @@ class ObjectStore:
                 if not i_cat in obj_categories:
                     categories_apply = False
                     break
-            
+
             if categories_apply:
                 return True
-        
+
         return False
