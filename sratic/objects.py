@@ -8,6 +8,9 @@ import base64
 import re
 import logging
 import uuid
+from .metadata import Constructors
+import yaml
+import csv
 
 def wrap_list(lst):
     if not lst:
@@ -530,3 +533,28 @@ class ObjectStore:
                 return True
 
         return False
+
+def resolve_load_csv(fragment, parent, key):
+    fn, stmt_fn = parent[key][1]
+    if type(fn) is list:
+        # Serializing and reloading is the only possibility to
+        # get a real dictionary from that YAML internal data structrues.
+        # fn[1] is the extra data
+        modify_data = yaml.load(yaml.serialize(fn[1]), Loader=yaml.Loader)
+        fn = fn[0].value
+    else:
+        modify_data = {}
+    assert type(fn) is str, 'filename for !csv should be a string'
+    fn = osp.join(osp.dirname(stmt_fn), fn)
+    fragment.sources.add(fn)
+    with open(fn) as fd:
+        reader = csv.DictReader(fd, **modify_data)
+        parent[key] = []
+        for row in reader:
+            # Normalize Column headers
+            for k,v in list(row.items()):
+                del row[k]
+                row[k.strip(" \t\ufeff")] = v
+            parent[key].append(row)
+
+Constructors.add("!csv", Constructors.LOAD_CSV, resolve_load_csv)

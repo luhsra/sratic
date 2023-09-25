@@ -16,7 +16,7 @@ class Constructors:
     LOAD_BIBTEX = 3
     PATH = 4
     MARKDOWN = 5
-
+    LOAD_CSV = 6
 
     handlers = {}
 
