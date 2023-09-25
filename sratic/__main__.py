@@ -16,6 +16,7 @@ import markdown
 import markdown.extensions.attr_list
 import urllib
 from urllib.parse import quote_plus
+from pathlib import Path
 
 sys.path.append(osp.join(osp.dirname(__file__), ".."))
 import sratic.bibliography
@@ -310,13 +311,13 @@ class Generator:
 
     def create_permalink(self, href, page):
         assert href.startswith("/p/")
-        perma_file = osp.join(self.destination_directory, href[1:])
-        if not osp.exists(osp.dirname(perma_file)):
-            os.makedirs(osp.dirname(perma_file))
-        if osp.exists(perma_file):
-            os.unlink(perma_file)
+        perma_file = Path(self.destination_directory, href[1:], 'index.html')
+        logging.debug("Prepare Permalink: %s", perma_file.parent)
+        if perma_file.parent.exists() and perma_file.parent.is_file():
+                perma_file.parent.unlink()
+        perma_file.parent.mkdir(parents=True, exist_ok=True)
         logging.debug("Permalink %s -> [id:%s]", perma_file, page.data['id'])
-        with open(perma_file, 'w+') as perma:
+        with open(perma_file, 'w') as perma:
             perma.write("""<!DOCTYPE html><html lang="en"><head><meta http-equiv="refresh" content="0;url=%s"></head></html>""" %
                         self.__link_absolute(urllib.parse.quote(page.data['href'])))
 
