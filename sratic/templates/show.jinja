@@ -292,7 +292,7 @@
           {% endif %}
         {% endfor %}
         {{ nav.asset(object.pdf, "Evaluation (PDF)") }}
-        {% if object.score %} • Bewertung: {{ object.score }}{% endif %}
+        {% if object.score and object.score > 0 %} • Bewertung: {{ object.score }}{% endif %}
   </span>
 {% endmacro %}
 {% set views.evaluation = show_evaluation%}
