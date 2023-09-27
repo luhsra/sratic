@@ -290,6 +290,7 @@ most dependencies without annotating them:
 - python3-jinja2
 - pandoc
 - python3-markdown
+- python3-pandas
 
 All of these are installed on the lab machines.
 
