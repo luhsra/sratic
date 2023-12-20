@@ -63,6 +63,7 @@ class Generator:
         self.env.filters["link"] = self.__link
         self.env.filters["link_absolute"] = self.__link_absolute
         self.env.filters["markdown"] = self.markdown
+        self.env.globals["markdown"] = self.call_markdown
         self.env.filters["quote_plus"] = lambda u: quote_plus(u)
         self.env.globals['data'] = self.data_dir.data
         self.env.globals["datetime"] = datetime.datetime
@@ -139,6 +140,15 @@ class Generator:
         retcode = process.wait()
         assert retcode == 0, "PDF Generation Failed for %s" % fn
         logging.info("Created PDF: %s", fn)
+
+    def call_markdown(self, caller):
+        content = caller()
+        # Autogobble
+        content = "\n" + content.lstrip("\n") 
+        prefix  = len(content) - len(content.lstrip('\n\t '))
+        content = content.replace(content[:prefix], "\n")
+        content = content.lstrip("\n")
+        return self.markdown(content)
 
     def markdown(self, content, page=None):
         if page and len([1 for key in page.data.keys() if key.startswith('pandoc')]) > 0:
