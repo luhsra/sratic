@@ -15,10 +15,13 @@ import os.path as osp
 import markdown
 import markdown.extensions.attr_list
 import urllib
+from copy import deepcopy
 from urllib.parse import quote_plus
 from pathlib import Path
 
-sys.path.append(osp.join(osp.dirname(__file__), ".."))
+__src_dir__ = Path(__file__).parent
+
+sys.path.append(__src_dir__.parent)
 import sratic.bibliography
 from sratic.metadata import YAMLDataFactory, Constructors
 from sratic.schema import check_schema
@@ -47,7 +50,9 @@ class Generator:
         self.options = options
 
         self.yaml_data_factory = YAMLDataFactory(None)
-        schema_fn  = os.path.join(os.path.dirname(__file__), "data/schema.yml")
+        schema_fn  = Path.cwd() / 'data' / 'schema.yml'
+        if not schema_fn.exists():
+            schema_fn  = __src_dir__ / 'data' / 'schema.yml'
         self.schema = self.yaml_data_factory.load_file(schema_fn)
         self.data_dir = self.yaml_data_factory.load_file("data/root.yml")
 
@@ -70,6 +75,15 @@ class Generator:
 
 
         self.objects = ObjectStore()
+        # Transfer object constructor from schema to object store
+        for _type, _schema in self.schema.data.items():
+            if '__init__' in _schema:
+                module, name = _schema['__init__'].rsplit(".", 1)
+                module = __import__(module, fromlist=[name])
+                constructor = getattr(module, name)
+                del _schema['__init__']
+                self.objects.object_constructors[_type] = constructor
+
         self.exporter = ObjectExporter(self.objects)
         self.env.tests["__has_menu_children"] = self.objects.has_menu_children
         self.env.tests["__child_of"] = self.objects.is_child_of
