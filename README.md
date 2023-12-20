@@ -288,7 +288,6 @@ most dependencies without annotating them:
 - python3-bibtexparser
 - python3-yaml
 - python3-jinja2
-- pandoc
 - python3-markdown
 - python3-pandas
 
@@ -302,4 +301,3 @@ All of these are installed on the lab machines.
   `sudo port select --set python3 python36`
 - the **bibtexparser** is not included in MacPorts, so we need to install via pip:
   `sudo pip-3.6 install bibtexparser markdown`
-- **pandoc** is available in MacPorts, but the version 1.12 is too old. So we install it directly from http://pandoc.org/installing.html

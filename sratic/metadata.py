@@ -32,7 +32,7 @@ class YAMLFragment:
         self.config = config
         self.sources = set()
         self.data  = None
-        self.path  = None   # Absolute path to source file
+        self.path  = None   # Relative path to source file
 
     def __repr__(self):
         return "YAMLFragment('{}')".format(self.path)

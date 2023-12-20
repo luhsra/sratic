@@ -100,8 +100,6 @@ class Generator:
         self.env.filters["sorted"] = self.objects.sorted
         self.env.globals['error'] = self.raise_error
 
-        self.target = None
-
         # Register the generator as a provider for the markdown constructor
         Constructors.add("!markdown", Constructors.MARKDOWN, self.resolve_markdown_constructor)
 
@@ -139,22 +137,6 @@ class Generator:
             elem = baseurl+elem
         return elem
 
-    def generate_pdf(self, fn, content, url=""):
-        cmd = "cd %s; pandoc --template %s -f html -V href='%s'  -o %s" % (
-            osp.dirname(fn),
-            self.env.find_template('pandoc-latex.template'),
-            url,
-            osp.basename(fn)
-        )
-        process = subprocess.Popen(cmd,
-                                   stdin=subprocess.PIPE,
-                                   shell=True)
-        process.stdin.write(content.encode('utf-8'))
-        process.stdin.close()
-        retcode = process.wait()
-        assert retcode == 0, "PDF Generation Failed for %s" % fn
-        logging.info("Created PDF: %s", fn)
-
     def call_markdown(self, caller):
         content = caller()
         # Autogobble
@@ -165,30 +147,17 @@ class Generator:
         return self.markdown(content)
 
     def markdown(self, content, page=None):
-        if page and len([1 for key in page.data.keys() if key.startswith('pandoc')]) > 0:
-            extra_args = ""
-            extra_args += page.data.get('pandoc.args', '')
-            cmd = "pandoc --template %s -f markdown -t html5 %s" % (
-                self.env.find_template('pandoc.template'), extra_args)
-            process = subprocess.Popen(cmd,
-                                       stdin=subprocess.PIPE,
-                                       stdout=subprocess.PIPE,
-                                       shell=True)
-            process.stdin.write(content.encode('utf-8'))
-            process.stdin.close()
-            content = process.stdout.read().decode("utf-8")
-        else:
-            BASE_RE = r'(?<!\{)\{\:?([^%\{][^\}\n]*[^%#\}])\}(?!\{)'
-            module = markdown.extensions.attr_list.AttrListTreeprocessor
-            module.BASE_RE = BASE_RE
-            module.HEADER_RE = re.compile(r'[ ]+%s[ ]*$' % BASE_RE)
-            module.BLOCK_RE = re.compile(r'\n[ ]*%s[ ]*$' % BASE_RE)
-            module.INLINE_RE = re.compile(r'^%s' % BASE_RE)
-            content = markdown.markdown(content, extensions=['markdown.extensions.extra',
-                                                             'markdown.extensions.toc',
-                                                             'markdown.extensions.codehilite',
-                                                             'sratic.markdown_tables'],
-                                        safe_mode=None)
+        BASE_RE = r'(?<!\{)\{\:?([^%\{][^\}\n]*[^%#\}])\}(?!\{)'
+        module = markdown.extensions.attr_list.AttrListTreeprocessor
+        module.BASE_RE = BASE_RE
+        module.HEADER_RE = re.compile(r'[ ]+%s[ ]*$' % BASE_RE)
+        module.BLOCK_RE = re.compile(r'\n[ ]*%s[ ]*$' % BASE_RE)
+        module.INLINE_RE = re.compile(r'^%s' % BASE_RE)
+        content = markdown.markdown(content, extensions=['markdown.extensions.extra',
+                                                         'markdown.extensions.toc',
+                                                         'markdown.extensions.codehilite',
+                                                         'sratic.markdown_tables'],
+                                    safe_mode=None)
         # Posprocessing for CSS
         content = content.replace("<table>", "<table class='table'>")
 
@@ -201,120 +170,36 @@ class Generator:
         text = parent[key][1][0]
         parent[key] = str(self.markdown(text))
 
-    def do_page(self, page, pdf=False):
-        # Clear the self.env
-        (base, ext) = osp.splitext(page.path)
-        extensions = {
-            ".md": "pandoc+jinja",
-            ".page": "jinja"}
-        assert ext in extensions, "File extension must be " + str(list(extensions.keys()))
+    def check_dependencies(self, page, target):
+        """Check if the target file `target` has to be rebuild.
 
-        # Dependency checking
-        if 'formatter.target' in page.data:
-            target = osp.normpath(osp.join(self.destination_directory,
-                                           osp.dirname(base),
-                                           page.data['formatter.target']))
-            self.target = target[1:]
-        elif pdf:
-            target = base+'.pdf'
-            self.target = base[1:] + ".pdf"
-        else:
-            target = osp.normpath(osp.join(self.destination_directory, base+'.html'))
-            self.target = base[1:] + ".html"
-
-        # FIXME: force build
+           @returns: True if target is up to date
+        """
         deps_fn = '{}/.deps.{}'.format(osp.dirname(target),
                                        osp.basename(target))
-        if osp.exists(target):
-            up_to_date = True
-            t_time = osp.getmtime(target)
-            sources = self.sources | page.sources
-            if osp.exists(deps_fn):
-                with open(deps_fn) as fd:
-                    sources.update(fd.read().split('\0'))
-            if self.data_dir.path in sources:
-                sources.update(self.data_dir.sources)
-            for fn in sources:
-                if not osp.exists(fn):
-                    continue
-                time = osp.getmtime(fn)
-                if time >= t_time:
-                    up_to_date = False
-                    break
-            if not self.options.force and up_to_date:
-                logging.debug("Up to date, skipping: %s (%s)" % (target, sources))
-                return
-            # PDF are not always regenerated
-            if pdf and "ONLY" not in os.environ:
-                return
+        if not osp.exists(target):
+            return False
 
-        logging.info("Generating %s", target)
-        # Do not change anything, if we should run dry
-        if self.options.dry:
-            return
+        up_to_date = True
+        t_time = osp.getmtime(target)
+        sources = self.sources | page.sources
+        if osp.exists(deps_fn):
+            with open(deps_fn) as fd:
+                sources.update(fd.read().split('\0'))
+        if self.data_dir.path in sources:
+            sources.update(self.data_dir.sources)
+        for fn in sources:
+            if not osp.exists(fn):
+                continue
+            time = osp.getmtime(fn)
+            if time >= t_time:
+                up_to_date = False
+                break
+        return up_to_date
 
-        # Select the formatting pipeline
-        formatter = page.data.get("formatter", extensions[ext])
-        formatters = re.split("[+,|;]", formatter)
-
-        referenced_objects = set()
-        self.objects.set_referenced_objects(referenced_objects)
-
-        page.data['pdf'] = pdf
-        if '/' not in page.data['id']:
-            page.data['permalink'] = self.__link_absolute('/p/' + page.data['id'].replace(':', '__'))
-
-        # FIXME: Should be done before the generation loop. Currently
-        # it is only valid for the currently processed page.
-        if 'relative_root' not in page.data:
-            page.data['relative_root'] = osp.relpath("/", osp.dirname(self.target))
-        self.env.globals['page'].clear()
-        self.env.globals['page'].update(page.data)
-
-        content = page.data['page-body']
-        for formatter in formatters:
-            if formatter in ("pandoc", "markdown"):
-                content = self.markdown(content, page)
-            elif formatter == "jinja":
-                content = self.env.expand(content)
-            else:
-                logging.error("Formatter %s is unknown", formatter)
-
-        # Create Directory
-        directory = osp.dirname(target)
-        if not osp.exists(directory):
-            os.makedirs(directory)
-        # For some Pages, we generate the PDF, if it does not exist
-        if pdf:
-            # TODO: hard coded url
-            URL = self.data_dir.data['site']['original_baseurl']
-            URL += page.data['permalink.href']
-            self.generate_pdf(target, content,
-                              url=URL)
-            return
-        else:
-            if set(glob.glob(base + ".*html")) - set([target]):
-                logging.warning("There are other files present in the directory with a similar name: %s",
-                                ", ".join(set(glob.glob(base + ".*html")) - set([target])))
-
-            with open(target, "w+") as out:
-                # don't add a specific header to txt or xml
-                if not target.endswith('.html'):
-                    txt = content
-                # only to html
-                else:
-                    tmpl =  self.env.get_template("page.jinja")
-                    txt = tmpl.render(page=self.env.globals['page'], body=content)
-                out.write(txt)
-
-        # create permalink symlinks
-        if page.data.get('permalink.href'):
-            self.create_permalink(page.data['permalink.href'], page)
-
-        if page.data.get('permalink.alias.href'):
-            self.create_permalink(page.data['permalink.alias.href'], page)
-
-
+    def dump_dependencies(self, referenced_objects, target):
+        deps_fn = '{}/.deps.{}'.format(osp.dirname(target),
+                                       osp.basename(target))
         # Save the referenced objects
         files = set()
         for id in referenced_objects:
@@ -325,6 +210,130 @@ class Generator:
                 files.add(fn)
         with open(deps_fn, "w+") as fd:
             fd.write("\0".join(sorted(files)))
+
+
+
+    def do_page_format(self, page, formatters):
+        referenced_objects = set()
+        self.objects.set_referenced_objects(referenced_objects)
+
+        self.env.globals['page'].clear()
+        self.env.globals['page'].update(page.data)
+
+        content = page.data['page-body']
+        for formatter in formatters:
+            if formatter == "markdown":
+                content = self.markdown(content, page)
+            elif formatter == "jinja":
+                content = content.replace("<markdown>", "{%+ call markdown() +%}")
+                content = content.replace("</markdown>", "{%+ endcall +%}")
+                content = self.env.expand(content)
+            else:
+                logging.error("Formatter %s is unknown", formatter)
+        return content, referenced_objects
+
+
+    def output_jinja(self, page, formatted, page_template, target):
+        # Create Directory
+        Path(target).parent.mkdir(parents=True, exist_ok=True)
+        with open(target, "w+") as out:
+            tmpl =  self.env.get_template(page_template)
+            txt = tmpl.render(page=self.env.globals['page'], body=formatted)
+            out.write(txt)
+
+    def output_raw(self, page, formatted, page_template, target):
+        # Create Directory
+        Path(target).parent.mkdir(parents=True, exist_ok=True)
+        with open(target, "w+") as out:
+            out.write(formatted)
+
+    def do_page(self, page):
+        # Clear the self.env
+        (base, ext) = osp.splitext(page.path)
+        extensions = {
+            ".md":   "markdown+jinja",
+            ".page": "jinja",
+            ".xml": "jinja",
+        }
+        if ext not in extensions:
+            raise RuntimeError(f"Invalid File Extension: {page.path}; options: {list(extensions.keys())}")
+
+        # Destination path in the filesystem
+        dest_directory = osp.normpath(osp.join(self.destination_directory,
+                                               osp.dirname(base)))
+        # Destination URL (relative to site.baseurl)
+        url_directory = osp.dirname(base)[1:]
+        if not url_directory:
+            url_directory = '/'
+
+        # Stem of the destination file
+        dest_stem = osp.basename(base)
+
+        if '/' not in page.data['id']:
+            page.data['permalink'] = self.__link_absolute('/p/' + page.data['id'].replace(':', '__'))
+
+        if 'relative_root' not in page.data:
+            page.data['relative_root'] = osp.relpath("/", url_directory)
+
+        # Stores the formatted page body
+        formatted = None
+
+        # For each output template, we will create one file.
+        for page_template in page.data.get('formatter.output_templates', ['page.jinja']):
+            # Create the output filename
+            X = page_template.split(".")
+            if len(X) == 2:
+                _, output_mode = X
+                dest_ext = "html"
+            else:
+                _, dest_ext, output_mode = X
+
+            if 'formatter.target' in page.data:
+                dest_filename = page.data['formatter.target']
+            else:
+                dest_filename = f"{dest_stem}.{dest_ext}"
+
+            dest_path = osp.join(dest_directory, dest_filename)
+            dest_url  = osp.join(url_directory, dest_filename)
+
+            similar = set(glob.glob(f'{dest_directory}*{dest_ext}')) - set([dest_path])
+            if similar:
+                logging.warning("There are other files present in the directory with a similar name: %s",
+                                ", ".join(similar))
+
+            up_to_date = self.check_dependencies(page, dest_path)
+
+            if not self.options.force and up_to_date:
+                logging.debug("Up to date, skipping: %s" % (dest_path))
+                continue
+
+            logging.info("Generating %s", dest_url)
+            # Do not change anything, if we should run dry
+            if self.options.dry:
+                continue
+
+            # We format the core page exactly once
+            if formatted is None:
+                # Select the formatting pipeline
+                formatters = page.data.get("formatter", extensions[ext])
+                formatters = re.split("[+,|;]", formatters)
+
+                # Invoke the formatter pipeline for the page body
+                formatted, ref_objs = self.do_page_format(page, formatters)
+
+            # Write the file to disk
+            output_routine = getattr(self, f'output_{output_mode}')
+            output_routine(page, formatted, page_template, dest_path)
+
+        if formatted:
+            self.dump_dependencies(ref_objs, dest_path)
+
+        # create permalink symlinks
+        if page.data.get('permalink.href'):
+            self.create_permalink(page.data['permalink.href'], page)
+
+        if page.data.get('permalink.alias.href'):
+            self.create_permalink(page.data['permalink.alias.href'], page)
 
         # Find all hrefs in html:
         # TODO: mode to detect all internal urls and search for dead urls
@@ -450,6 +459,9 @@ def main():
             base, ext = osp.splitext(fn)
             ext = ext.lower()
 
+            with open(fn, 'rb') as fd:
+                has_prematter = (fd.read(3) == b'---')
+
             if os.path.islink(fn) and not os.path.relpath(os.path.realpath(fn), ".").startswith("../"):
                 assert not os.path.lexists(dst) or os.path.islink(dst),\
                     "Would override non-symlink with symlink:" + dst
@@ -460,8 +472,11 @@ def main():
                 if not osp.exists(osp.dirname(dst)):
                     os.makedirs(osp.dirname(dst))
                 os.symlink(symlink, dst)
-            elif ext in [".md", ".page"]:
+            elif ext in [".md", ".page"] or (has_prematter and ext in [".xml"]):
                 page = gen.yaml_data_factory.load_file(fn)
+                for name, value in gen.env.globals['data']['site'].get('default_page', {}).items():
+                    if name not in page.data:
+                        page.data[name] = deepcopy(value)
                 pages.append(page)
             elif ext in asset_suffixes | {'.jpg', '.jpeg', '.png', '.pdf', '.svg', '.otf', '.gif',
                          '.xml', '.css', ".js", '.ico', '.ttf', '.woff',
@@ -506,10 +521,6 @@ def main():
             child = "NOFORK"
         for page in work:
             gen.do_page(page)
-            # For thesis we generate PDFs
-            generate_pdfs = gen.data_dir.data.get('site', {}).get('thesis', {}).get('generate_pdfs', True)
-            if generate_pdfs and gen.objects.isA(page.data, 'thesis'):
-                gen.do_page(page, pdf=True)
         if child == 0:
             sys.exit(0)
 

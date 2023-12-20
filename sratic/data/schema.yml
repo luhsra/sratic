@@ -87,9 +87,8 @@ page: &type_page
     doc: "Every object can have an URI where to find it"
   formatter:
     doc: "Which formatting strategy should be used"
-  pandoc.args:
-    doc: "Additional args to pandoc"
-    type: str
+  formatter.output_templates:
+    doc: "List of page templates to use. Multiple files can be generated."
   permalink.href:
     doc: HREF of page specific permalink
   permalink.alias:
