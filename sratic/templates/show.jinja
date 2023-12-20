@@ -145,7 +145,7 @@
 				<span class="bib-booktitle">{{ entry.booktitle }}</span>
 			{%- endif -%}
 			{%- if entry.journal -%}
-		<span class="bib-journal">{{ entry.journal }}</span><span class=bib-journal-issue>{%- if entry.volume -%}{{ entry.volume }}{% if entry.number %}.{{ entry.number}}{% elif entry.issue %}.{{ entry.issue}}{% endif %}{% endif -%}</span>
+		<span class="bib-journal">{{ entry.journal }}</span><span class="bib-journal-issue">{%- if entry.volume -%}{{ entry.volume }}{% if entry.number %}.{{ entry.number}}{% elif entry.issue %}.{{ entry.issue}}{% endif %}{% endif -%}</span>
 			{%- endif -%}
 			{# The type= bibtex field is renamed automatically to thesistype= #}
 			{%- set thesistype = (entry.thesistype or entry.ENTRYTYPE == 'phdthesis' and 'PHD thesis') -%}
@@ -178,8 +178,8 @@
 			{%- if entry.ENTRYTYPE == 'book' and entry.isbn -%}
 				<span class="bib-isbn">{{entry.isbn -}}</span>
 			{%- endif -%}
-			{% if entry['x-award'] %}<span class=bib-award>{{ entry['x-award'] }}</span>{% endif -%}
-			{% if entry['note'] %}<span class=bib-note>{{ entry['note'] }}</span>{% endif -%}
+			{% if entry['x-award'] %}<span class="bib-award">{{ entry['x-award'] }}</span>{% endif -%}
+			{% if entry['note'] %}<span class="bib-note">{{ entry['note'] }}</span>{% endif -%}
 			.
                         {# For PDF generation, we ignore some fields #}
                         {% if not page.pdf %}
@@ -204,7 +204,7 @@
 				<div class="modal-dialog modal-lg">
 					<div class="modal-content">
 						<div class="modal-header">
-							<button type="button" class="close" data-bs-dismiss="modal" data-dismiss="modal">&times;</button>
+							<button type="button" class="close" data-bs-dismiss="modal" data-dismiss="modal">&#x1f5d9;</button>
 							<h4 class="modal-title">BibTex Entry</h4>
 						</div>
 						<div class="modal-body">
