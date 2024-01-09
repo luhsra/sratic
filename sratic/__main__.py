@@ -72,6 +72,7 @@ class Generator:
         self.env.filters["quote_plus"] = lambda u: quote_plus(u)
         self.env.globals['data'] = self.data_dir.data
         self.env.globals["datetime"] = datetime.datetime
+        self.env.globals["timedelta"] = datetime.timedelta
 
 
         self.objects = ObjectStore()

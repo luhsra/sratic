@@ -430,7 +430,7 @@ class ObjectStore:
                 type == 'thesis'
                 and (not status or obj['thesis-status'] in status)
                 and (not supervisor or supervisor in obj['thesis-supervisor'])
-                and (not project or project in obj['projects'])
+                and (not project or project in obj.get('projects',[]))
             ) or (
                 type == 'project'
                 and (not status or obj['project-status'] in status)
