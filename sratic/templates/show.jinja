@@ -311,3 +311,9 @@
       {% endfor %}
     </ul>
 {% endmacro %}
+
+{% macro once(flag, text) %}
+{% if not page["__flag_" + flag] %}
+{{text}}{% set __ = page.__setitem__("__flag_" + flag, true) %}
+{%endif%}
+{% endmacro %}
