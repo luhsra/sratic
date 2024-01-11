@@ -89,6 +89,8 @@ page: &type_page
     doc: "Which formatting strategy should be used"
   formatter.output_templates:
     doc: "List of page templates to use. Multiple files can be generated."
+  permalink:
+    doc: "Automatically filled by objects.py"
   permalink.href:
     doc: HREF of page specific permalink
   permalink.alias:

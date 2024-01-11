@@ -4,6 +4,7 @@ site:
     generate_pdfs: false
   short_title: OSG
   baseurl: https://www3.tuhh.de/osg
+  permalink_base: /pl/
   default_templates:
     nav: 'navigation.jinja'
     show: 'show.jinja'

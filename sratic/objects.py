@@ -11,6 +11,7 @@ import uuid
 from .metadata import Constructors
 import yaml
 import csv
+from pathlib import Path
 
 def wrap_list(lst):
     if not lst:
@@ -54,6 +55,14 @@ class ObjectStore:
     def schema_for(self, obj):
         return schema_for_obj(self.schema, obj)
 
+    def permalink(self, data_dir, name, page):
+        """Calculate a permalink locationand return a tuple of
+            (name, relative URL).
+        """
+        p_base = Path(data_dir.data['site'].get('permalink_base', '/p'))
+        p_name = name.replace(':', '__')
+        return (p_name, str(p_base/p_name))
+
     def crawl_pages(self, schema, data_dir, pages):
         # The dict that maps every object id to its object
         # ID -> object
@@ -72,8 +81,10 @@ class ObjectStore:
             (base, ext) = osp.splitext(page.path)
             page.data['href'] = base[1:] + ".html"
             if "id" in page.data:
-                perma_name =  page.data['id'].replace(':', '__')
-                page.data['permalink.href'] = '/p/' + perma_name
+                if '/' not in page.data['id']:
+                    name, href = self.permalink(data_dir, page.data['id'], page)
+                    page.data['permalink']      = name
+                    page.data['permalink.href'] = href
             else:
                 page.data['id'] = page.data['href']
 
@@ -102,12 +113,15 @@ class ObjectStore:
             if page.data['id'] in data_dir.data.get('permalinks', {}):
                 assert 'permalink.alias' not in page.data, "Page %s (%s): global permalink alias conflicts with page-local permalink.alias. Remove either one" % (page.data['id'], page.data['__file__'])
                 page.data['permalink.alias'] = data_dir.data['permalinks'][page.data['id']]
+
             if 'permalink.alias' in page.data:
-                alias = page.data['permalink.alias']
+                alias_given = page.data['permalink.alias']
+                alias, href = self.permalink(data_dir, alias_given, page)
+                assert alias == alias_given, f"Invalid Alias: {alias_given}"
                 assert alias not in aliases, "Alias %s is duplicated: %s, %s" % (alias, page.data['__file__'],
                                                                              aliases[alias].data['__file__'])
                 aliases[alias] = page
-                page.data['permalink.alias.href'] = 'p/' + alias
+                page.data['permalink.alias.href'] = href
 
 
         # Step 2: Generate an Index for all objects that are defined in the data directory
@@ -166,7 +180,6 @@ class ObjectStore:
             # Permalink aliases provoke an object alias
             if 'permalink.alias' in obj:
                 aliases.append(obj['permalink.alias'])
-                obj['permalink.alias.href'] = "/p/" + obj['permalink.alias']
 
             for id in aliases:
                 if id in objects:

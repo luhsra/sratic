@@ -270,9 +270,6 @@ class Generator:
         # Stem of the destination file
         dest_stem = osp.basename(base)
 
-        if '/' not in page.data['id']:
-            page.data['permalink'] = self.__link_absolute('/p/' + page.data['id'].replace(':', '__'))
-
         if 'relative_root' not in page.data:
             page.data['relative_root'] = osp.relpath("/", url_directory)
 
@@ -344,7 +341,6 @@ class Generator:
 	#        self.urls.add(url)
 
     def create_permalink(self, href, page):
-        assert href.startswith("/p/")
         perma_file = Path(self.destination_directory, href[1:], 'index.html')
         logging.debug("Prepare Permalink: %s", perma_file.parent)
         if perma_file.parent.exists() and perma_file.parent.is_file():
