@@ -526,7 +526,7 @@ class ObjectStore:
             if 'id' in x:
                 return x['id']
             return str(x)
-        return sorted(elem, key = sort_key)
+        return sorted(elem, key = sort_key, **kwargs)
 
     def filter_categories(self, obj, categories):
         obj_categories = obj['bibtex'].get('x-category', [])
