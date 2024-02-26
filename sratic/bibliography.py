@@ -1,16 +1,16 @@
 # coding: utf-8
 
-import yaml
-import re
-import logging
 import os.path as osp
+import logging
+import subprocess
+import json
+import sys
+
+from pathlib import Path
+
+import yaml
+
 from .metadata import Constructors
-import bibtexparser
-from collections import defaultdict
-import time
-import os.path
-import pickle
-import hashlib
 
 
 def resolve_load_bibtex(fragment, parent, key):
@@ -30,135 +30,57 @@ def resolve_load_bibtex(fragment, parent, key):
 
 Constructors.add("!bibtex", Constructors.LOAD_BIBTEX, resolve_load_bibtex)
 
-def try_load_bibtex_pickle(filename, filename_pickle):
-    sha1sum = hashlib.sha1()
-    with open(filename, "rb") as fd:
-        sha1sum.update(fd.read())
-    new_sha1sum = sha1sum.digest()
-    data = None
 
-    try:
-        with open(filename_pickle, 'rb') as fd:
-            old_sha1sum, data = pickle.load(fd)
-        if old_sha1sum != new_sha1sum:
-            data = None
-    except Exception as e:
-        pass
-    return new_sha1sum, data
+def join_name(person):
+    name = person['last_name']
+    fn = person['first_name']
+    if fn:
+        name = fn + ' ' + name
+    return name
+
 
 def load_bibtex(filename, modify_data=None):
     """Loads a bibtex file, and exposes it as a dict, to be included by
        !bibtex.
     """
-    parser_start = time.time()
-    fd = open(filename)
-    filename_pickle = filename + ".pickle"
-    sha1sum, data = try_load_bibtex_pickle(filename, filename_pickle)
-    if data is None:
-        parser = bibtexparser.bparser.BibTexParser(common_strings=True)
-        parser.ignore_nonstandard_types = False
-        data = bibtexparser.load(fd, parser)
-        with open(filename_pickle, "wb+") as pickle_fd:
-            pickle.dump((sha1sum, data), pickle_fd)
-    parser_end = time.time()
-    pickle.dumps(data)
-    logging.info("BibTeX Parsing/Loading[%s]: %.2f, %d entries", os.path.basename(filename),
-                 parser_end - parser_start,
-                 len(data.entries))
-    ret = {
-        'entries': [],
-        'years': defaultdict(list),
-        'keys': {}
-    }
-    by_id = {e['ID']: e for e in data.entries}
-    for e in data.entries:
-        # Update Data with the modify data from the !bibtex command,
-        # to supply default values.
+    filename = Path(filename)
+    assert filename.exists(), f"{filename.absolute()} does not exist"
+    try:
+        json_bib = subprocess.run(["bib2json", filename.absolute()],
+                                  check=True, capture_output=True)
+    except FileNotFoundError:
+        logging.error("You need to install bib2json: https://github.com/luhsra/bib2json")
+        sys.exit(2)
+    raw_bib = json.loads(json_bib.stdout)
+    # a few things are different into sratic bibtex json and the one returned
+    # by bib2json. Convert that.
+    curated = {'entries': [],
+               'keys': {},
+               'years': {}}
+    for entry in raw_bib.values():
+        cur = {}
+        for key, value in entry.items():
+            if key == 'entry_type':
+                cur['ENTRYTYPE'] = value
+            elif key == 'id':
+                cur['ID'] = value
+                cur['id'] = 'bib:' + value
+            elif key == 'authors':
+                if value:
+                    cur['authors'] = [join_name(x) for x in value]
+            elif key == 'editors':
+                if value:
+                    cur['editors'] = [join_name(x) for x in value]
+            else:
+                if key not in ['pages', 'number'] and isinstance(value, str):
+                    value = value.replace('---', '—')
+                    value = value.replace('--', '–')
+                    value = value.replace(r' \-', '').replace(r'\-', '')
+                cur[key] = value
+        cur['type'] = 'bibtex'
         if modify_data:
             for k, v in modify_data.items():
-                if not k in e:
-                    e[k] = v
-        # Resolve crossref
-        if 'crossref' in e:
-            assert e['crossref'] in by_id,\
-                "Crossref %s could not be resolved" %( e['crossref'])
-            cr = by_id[e['crossref']]
-            # Copy all keys that are not defined into the entry
-            for key in cr:
-                if not key in e:
-                    e[key] = cr[key]
-            del e['crossref']
-        # Generate pretty printed bibtex entry for inclusion into pages.
-        db = bibtexparser.bibdatabase.BibDatabase()
-        ee = dict(e)
-        for key in [x for x in ee.keys() if x.startswith('x-')]:
-            del ee[key]
-        db.entries = [ee]
-        e['bibtex'] = bibtexparser.dumps(db).strip()
-        e['id'] = 'bib:' + e['ID']
-
-        # As we have to use the type field in our .bib files, but we
-        # also have to define the 'type' field in our objects, we
-        # rename the field before we override it.
-        if 'type' in e:
-            e['thesistype'] = e['type']
-        e['type'] = 'bibtex'
-
-        if e.get('x-own') and 'year' not in e['bibtex']:
-            logging.error("Bibtex Entry %s has no year field but a x-own=True field",  e['id'])
-            sys.exit(-1)
-
-        # ATTENTION: We ignore proceedings entries
-        if e['ENTRYTYPE'].lower() == 'proceedings':
-            continue
-
-        ret['entries'].append(e)
-
-        # Normalize Fields
-        for field in ('title', 'author','booktitle', 'editor', 'school', 'publisher', 'note', 'x-award'):
-            if field not in e:
-                continue
-            tmp = e[field]
-            replace = {r'\ss': 'ß', r"\#": "#",
-                       r'\"{a}': 'ä', r'\"a': 'ä',
-                       r'\"{u}': 'ü', r'\"u': 'ü',
-                       r'\"{o}': 'ö', r'\"o': 'ö',
-                       r"\'{a}": 'á', r"\'a": 'á',
-                       r"\'{e}": 'é', r"\'e": 'é',
-                       r"\'{E}": 'É', r"\'E": 'É',
-                       '\&': '&',
-                       '\-': '',
-                       '---': '––',
-                       '--': '–',
-                       '$\\mu$': 'µ',
-                       '\\textendash': '–',
-                       '\n': ' ',
-                       '\r': ' ' }
-            for k,v in replace.items():
-                tmp = tmp.replace(k,v)
-            regex_repl = [('\\\\emph{([^{}]*)}', '<it>\\1</it>'),
-                          ('{([^{}]*)}', '\\1')]
-            for k,v in regex_repl:
-                tmp = re.sub(k, v, tmp)
-
-
-            e[field] = tmp
-
-        for field in ('author', 'editor'):
-            if field not in e:
-                continue
-
-            field_p = field + "s"
-            assert field_p not in e, f"Invalid Bibtex field: {field_p} in entry {e['id']}"
-            e[field_p] = [x.strip() for x in re.split(' and ', e[field].replace('\n', ' '),
-                                                      flags=re.IGNORECASE)
-                                                      ]
-            for i, a in enumerate(e[field_p]):
-                if ',' in a:
-                    a = a.split(',', 1)
-                    e[field_p][i] = ("%s %s" % (a[1], a[0])).strip()
-
-
-
-    fd.close()
-    return ret
+                if k not in cur:
+                    cur[k] = v
+        curated['entries'].append(cur)
+    return curated
