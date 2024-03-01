@@ -2,15 +2,19 @@
 
 import os.path as osp
 import logging
+import platform
 import subprocess
 import json
 import sys
 
 from pathlib import Path
+from urllib import request
 
 import yaml
 
 from .metadata import Constructors
+
+BIB2JSON_VERSION = ("0", "1", "0")
 
 
 def resolve_load_bibtex(fragment, parent, key):
@@ -45,12 +49,10 @@ def load_bibtex(filename, modify_data=None):
     """
     filename = Path(filename)
     assert filename.exists(), f"{filename.absolute()} does not exist"
-    try:
-        json_bib = subprocess.run(["bib2json", filename.absolute()],
-                                  check=True, capture_output=True)
-    except FileNotFoundError:
-        logging.error("You need to install bib2json: https://github.com/luhsra/bib2json")
-        sys.exit(2)
+
+    bib2json = get_bib2json_path()
+    json_bib = subprocess.run([bib2json, filename.absolute()],
+                                check=True, capture_output=True)
     raw_bib = json.loads(json_bib.stdout)
     # a few things are different into sratic bibtex json and the one returned
     # by bib2json. Convert that.
@@ -72,10 +74,6 @@ def load_bibtex(filename, modify_data=None):
                 if value:
                     cur['editors'] = [join_name(x) for x in value]
             else:
-                if key not in ['pages', 'number'] and isinstance(value, str):
-                    value = value.replace('---', '—')
-                    value = value.replace('--', '–')
-                    value = value.replace(r' \-', '').replace(r'\-', '')
                 cur[key] = value
         cur['type'] = 'bibtex'
         if modify_data:
@@ -84,3 +82,51 @@ def load_bibtex(filename, modify_data=None):
                     cur[k] = v
         curated['entries'].append(cur)
     return curated
+
+
+def get_bib2json_path() -> Path | str:
+
+    def version_compatible(path: Path | str) -> bool:
+        try:
+            version = subprocess.run(args=[path, "--version"], capture_output=True, text=True).stdout.strip()
+            [major, minor, _] = version.split(" ")[1].split(".")
+            logging.debug(f"bib2json version: {major}.{minor}")
+            return (major, minor) == BIB2JSON_VERSION[0:2]
+        except FileNotFoundError as e:
+            return False
+
+
+    # preinstalled bib2json
+    exe_path = "bib2json"
+    if version_compatible(exe_path):
+        logging.debug("Use system bib2json")
+        return exe_path
+
+    # locally downloaded bib2json
+    asset_name = {
+        "Linux": "ubuntu-latest-bib2json",
+        "Darwin": "macos-latest-bib2json",
+        "Windows": "windows-latest-bib2json.exe",
+    }.get(platform.system(), None)
+    assert asset_name, "OS not supported"
+
+    exe_path = Path(__file__).parent / "bin" / asset_name
+
+    if version_compatible(exe_path):
+        return exe_path
+
+    try:
+        download_bib2json(asset_name, exe_path)
+    except Exception as e:
+        logging.error("Download of https://github.com/luhsra/bib2json failed")
+        sys.exit(1)
+    return exe_path
+
+
+def download_bib2json(name: str, path: Path):
+    path.parent.mkdir(exist_ok=True)
+    version = ".".join(BIB2JSON_VERSION)
+    url = f"https://github.com/luhsra/bib2json/releases/download/{version}/{name}"
+    logging.info("GET " + url)
+    request.urlretrieve(url, path)
+    path.chmod(0o755)
