@@ -43,6 +43,16 @@ def join_name(person):
     return name
 
 
+def censor_bibtex_entry(entry):
+    blacklist = [
+        'x-',
+        'userd',
+        'userc',
+    ]
+    return '\n'.join([x for x in entry.split('\n')
+                      if not any([x.strip().startswith(m) for m in blacklist])])
+
+
 def load_bibtex(filename, modify_data=None):
     """Loads a bibtex file, and exposes it as a dict, to be included by
        !bibtex.
@@ -52,7 +62,7 @@ def load_bibtex(filename, modify_data=None):
 
     bib2json = get_bib2json_path()
     json_bib = subprocess.run([bib2json, filename.absolute()],
-                                check=True, capture_output=True)
+                              check=True, capture_output=True)
     raw_bib = json.loads(json_bib.stdout)
     # a few things are different into sratic bibtex json and the one returned
     # by bib2json. Convert that.
@@ -75,6 +85,8 @@ def load_bibtex(filename, modify_data=None):
                     cur['editors'] = [join_name(x) for x in value]
             elif key == 'type' and entry['entry_type'] == 'thesis':
                 cur['thesistype'] = value
+            elif key == 'bibtex':
+                cur[key] = censor_bibtex_entry(value)
             else:
                 cur[key] = value
         cur['type'] = 'bibtex'
