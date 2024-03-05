@@ -21,7 +21,7 @@ def resolve_load_bibtex(fragment, parent, key):
     fn, stmt_fn = parent[key][1]
     if type(fn) is list:
         # Serializing and reloading is the only possibility to
-        # get a real dictionary from that YAML internal data structrues.
+        # get a real dictionary from that YAML internal data structures.
         # fn[1] is the extra data
         modify_data = yaml.load(yaml.serialize(fn[1]), Loader=yaml.Loader)
         fn = fn[0].value
@@ -73,6 +73,8 @@ def load_bibtex(filename, modify_data=None):
             elif key == 'editors':
                 if value:
                     cur['editors'] = [join_name(x) for x in value]
+            elif key == 'type' and entry['entry_type'] == 'thesis':
+                cur['thesistype'] = value
             else:
                 cur[key] = value
         cur['type'] = 'bibtex'
