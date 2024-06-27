@@ -547,6 +547,17 @@ class ObjectStore:
 
         return False
 
+@staticmethod
+def filter_old_eval(obj):
+    if 'evaluation' not in obj['type']:
+        return False
+    sem = obj['lecture']['semester']
+    year = int("20"+sem[2:4])
+    month = 6 if sem[0:2] == "ss" else 12
+    if datetime.date.today() < datetime.date(year+3, month, 1):
+        return True
+    return False
+
 def resolve_load_csv(fragment, parent, key):
     import pandas as pd
 
