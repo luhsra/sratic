@@ -132,14 +132,14 @@ def get_bib2json_path() -> Path | str:
     try:
         download_bib2json(asset_name, exe_path)
     except Exception as e:
-        logging.error("Download of https://github.com/luhsra/bib2json failed")
+        logging.error(f"Download of bib2json failed: {e}")
         sys.exit(1)
     return exe_path
 
 
 def download_bib2json(name: str, path: Path):
     path.parent.mkdir(exist_ok=True)
-    version = ".".join(BIB2JSON_VERSION)
+    version = ".".join(map(str, BIB2JSON_VERSION))
     url = f"https://github.com/luhsra/bib2json/releases/download/{version}/{name}"
     logging.info("GET " + url)
     request.urlretrieve(url, path)
