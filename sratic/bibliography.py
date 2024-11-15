@@ -14,7 +14,7 @@ import yaml
 
 from .metadata import Constructors
 
-BIB2JSON_VERSION = ("0", "1", "0")
+BIB2JSON_VERSION = (0, 1, 2)
 
 
 def resolve_load_bibtex(fragment, parent, key):
@@ -103,9 +103,9 @@ def get_bib2json_path() -> Path | str:
     def version_compatible(path: Path | str) -> bool:
         try:
             version = subprocess.run(args=[path, "--version"], capture_output=True, text=True).stdout.strip()
-            [major, minor, _] = version.split(" ")[1].split(".")
-            logging.debug(f"bib2json version: {major}.{minor}")
-            return (major, minor) == BIB2JSON_VERSION[0:2]
+            [major, minor, patch] = [int(v) for v in version.split(" ")[1].split(".")]
+            logging.debug(f"bib2json version: {major}.{minor}.{patch}")
+            return (major, minor) == BIB2JSON_VERSION[0:2] and patch >= BIB2JSON_VERSION[2]
         except FileNotFoundError as e:
             return False
 
