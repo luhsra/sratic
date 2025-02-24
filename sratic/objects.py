@@ -558,6 +558,12 @@ def filter_old_eval(obj):
         return True
     return False
 
+@staticmethod
+def filter_has_document(obj):
+    if 'thesis' not in obj['type']:
+        return False
+    return obj.get("thesis-document") is not None
+
 def resolve_load_csv(fragment, parent, key):
     import pandas as pd
 
