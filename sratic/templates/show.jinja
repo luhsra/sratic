@@ -185,7 +185,7 @@
                         {% if not page.pdf %}
 			<br/>
 			{{ __link_notnull(entry['x-pdf'], 'PDF') }}
-                        {{ __link_notnull(object['href'] or object['x-details'], 'Details') }}
+                        {{ __link_notnull(object['href'] or entry['x-details'], 'Details') }}
 			{%- if not entry['x-pdf'] and entry['eprint'] -%}
 				{{ __link_notnull('http://arxiv.org/pdf/' + entry.get('eprint',''), 'PDF') }}
 			{%- endif -%}
