@@ -477,6 +477,7 @@ def main():
                 pages.append(page)
             elif ext in asset_suffixes | {'.jpg', '.jpeg', '.png', '.pdf', '.svg', '.otf', '.gif', '.webp',
                          '.xml', '.css', ".js", '.ico', '.ttf', '.woff',
+                         '.webm', '.mp4', '.mkv', '.ogv', '.avi', '.mpg',
                          '.woff2', '.eot', '.html', '.xls', '.xlsx' } or 'htaccess' in fn:
                 assets.append(unicodedata.normalize("NFC", fn.lstrip(".")))
                 if not osp.exists(osp.dirname(dst)):
