@@ -154,7 +154,14 @@ class ObjectStore:
                 if not 'title' in page:
                     page['title'] = obj['title']
                 # Extract list of projects from bibtex file
-                page['projects'] = list(filter(None, [x.strip() for x in obj.get('x-projects','').split(",")]))
+                def in_prjs(prj):
+                    if prj == '':
+                        return False
+                    if prj not in [item['id'] for item in self.object_list('project')]:
+                        logging.warn(f"Project {prj} unknown, ignoring")
+                        return False
+                    return True
+                page['projects'] = list(filter(in_prjs, [x.strip() for x in obj.get('x-projects','').split(",")]))
 
         for k, transform in data_dir.data.get('bibliography', {}).items():
             if not k.startswith('transform-'):
