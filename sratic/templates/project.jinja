@@ -41,7 +41,7 @@
 
 {% if object_list('thesis', project=project.id, status=['finished']) %}
 <h3>Finished Theses</h3>
-{{ show.list('thesis', project=project.id, status=['finished']) }}
+{{ show.list('thesis', reverse=True, project=project.id, status=['finished']) }}
 {% endif %}
 
 {% endif %}
