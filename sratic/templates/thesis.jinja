@@ -14,7 +14,7 @@
   <li><strong>Status der Arbeit:</strong> {{ macros.thesis_status(thesis) }}</li>
   {% endif %}
   {% if thesis.projects %}
-     <li><strong>Projekte:</strong> {% for p in thesis.projects %}{{ nav.link(p) }}{%endfor%}</li>
+     <li><strong>Projekte:</strong> {% for p in wrap_list(thesis.projects) %}{% if not loop.first %}, {%endif%}{{nav.link(p)}}{%endfor%}</li>
   {% endif %}
   <li><strong>Betreuer:</strong> {{ show.people_list(thesis['thesis-supervisor']) }}</li>
   {% if thesis['thesis-student'] %}
