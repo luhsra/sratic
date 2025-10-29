@@ -28,7 +28,7 @@ from sratic.schema import check_schema
 from sratic.tmpl_jinja import SRAticEnvironment
 from sratic.objects import ObjectStore
 from sratic.remote import ObjectExporter
-from sratic.sratic.schedule_table import ScheduleExtension, schedule_table
+from sratic.schedule_table import ScheduleExtension, schedule_table
 
 
 class Generator:
