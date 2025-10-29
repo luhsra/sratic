@@ -1,5 +1,4 @@
 import logging
-from typing import override
 import markdown
 from markdown.extensions import Extension
 from markdown.preprocessors import Preprocessor
@@ -28,7 +27,6 @@ class SchedulePreprocessor(Preprocessor):
         re.MULTILINE | re.DOTALL | re.VERBOSE,
     )
 
-    @override
     def run(self, lines: list[str]):
         text = "\n".join(lines)
         new_text = ""
@@ -114,7 +112,6 @@ def format_cell(cell: str) -> str:
 
 
 class ScheduleExtension(Extension):
-    @override
     def extendMarkdown(self, md: markdown.Markdown):
         md.registerExtension(self)
         md.preprocessors.register(SchedulePreprocessor(md), "schedule", 40)
