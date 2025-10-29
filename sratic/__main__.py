@@ -28,6 +28,7 @@ from sratic.schema import check_schema
 from sratic.tmpl_jinja import SRAticEnvironment
 from sratic.objects import ObjectStore
 from sratic.remote import ObjectExporter
+from sratic.sratic.schedule_table import ScheduleExtension, schedule_table
 
 
 class Generator:
@@ -74,6 +75,7 @@ class Generator:
         self.env.globals["datetime"] = datetime.datetime
         self.env.globals["timedelta"] = datetime.timedelta
 
+        self.env.globals["schedule_table"] = schedule_table
 
         self.objects = ObjectStore()
         # Transfer object constructor from schema to object store
@@ -154,11 +156,17 @@ class Generator:
         module.HEADER_RE = re.compile(r'[ ]+%s[ ]*$' % BASE_RE)
         module.BLOCK_RE = re.compile(r'\n[ ]*%s[ ]*$' % BASE_RE)
         module.INLINE_RE = re.compile(r'^%s' % BASE_RE)
-        content = markdown.markdown(content, extensions=['markdown.extensions.extra',
-                                                         'markdown.extensions.toc',
-                                                         'markdown.extensions.codehilite',
-                                                         'sratic.markdown_tables'],
-                                    safe_mode=None)
+        content = markdown.markdown(
+            content,
+            extensions=[
+                "markdown.extensions.extra",
+                "markdown.extensions.toc",
+                "markdown.extensions.codehilite",
+                "sratic.markdown_tables",
+                ScheduleExtension(),
+            ],
+            safe_mode=None,
+        )
         # Posprocessing for CSS
         content = content.replace("<table>", "<table class='table'>")
 
