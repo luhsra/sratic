@@ -324,7 +324,7 @@ class ObjectStore:
     @staticmethod
     def __init__lecture(obj):
         """For a lecture we fill semester, series and parent from the ID"""
-        regex = '^lehre-([ws]s[0-9]{2})-([A-ZÄÖÜ_]+)$'
+        regex = '^lehre-([ws]s[0-9]{2})-([A-ZÄÖÜ_0-9]+)$'
         m = re.match(regex, obj['id'])
         assert m, "Invalid id for lecture, use: " + regex
         semester, series = m.groups()
