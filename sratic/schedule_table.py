@@ -92,22 +92,43 @@ def table_from_csv(code: str) -> str:
 
 def format_cell(cell: str) -> str:
     cell = html.escape(cell.strip())
-    if m := re.match(r"^(V|S)(\d+): ", cell):
-        return (
-            f'<span class="label label-primary">{m.group(1)}{m.group(2)}</span> {cell[m.end() :]}'
-        )
-    elif m := re.match(r"^U(\d+): ", cell):
-        return f'<span class="label label-info">U{m.group(1)}</span> {cell[m.end() :]}'
-    elif m := re.match(r"^A(\d+): ", cell):
-        return (
-            f'<span class="label label-success">A{m.group(1)}</span> {cell[m.end() :]}'
-        )
-    elif m := re.match(r"^D: ", cell):
-        return f'<span class="label label-danger" style="display:inline-block;width:100%">Deadline: {cell[m.end():]}</span>'
-    elif m := re.match(r"^R$", cell):
+    if m := re.match(r"^(.+?):(.*)$", cell):
+        kind = m[1].upper()
+        content = m[2].strip()
+
+        # Simple labels
+        label_class = {
+            "PRIMARY": "primary",
+            "SUCCESS": "success",
+            "INFO": "info",
+            "WARN": "warning",
+            "DANGER": "danger",
+            "NOTE": "default",
+        }.get(kind)
+        if label_class:
+            return f'<span class="label label-{label_class}">{content}</span>'
+
+        # Important deadlines
+        if kind in ["D", "DEADLINE"]:
+            return f'<span class="label label-danger" style="display:inline-block;width:100%">{content}</span>'
+
+        # Numbered lectures/exercises/etc.
+        if ma := re.match(r"^(.)(\d+)$", kind):
+            prefix = ma[1]
+            number = int(ma[2])
+            type_class = {
+                "V": "primary",  # Vorlesung
+                "S": "primary",  # Seminar
+                "U": "info",  # Übung
+                "A": "success",  # Aufgabe
+                "T": "warning",  # Teilabgabe
+                "D": "danger",  # Deadline
+            }.get(prefix)
+            if type_class:
+                return f'<span class="label label-{type_class}">{prefix}{number}</span> {content}'
+
+    if cell == "R" or cell == "Rechnerübung":
         return f'<span class="label label-warning">R</span> Rechnerübung'
-    elif cell == "Repetitorium":
-        return f'<span class="label label-warning">Repetitorium</span>'
     return cell
 
 
