@@ -298,6 +298,9 @@ lecture:
   bubble:
     type: string
     doc: acronym/short form of the lecture for the bubble
+  semestertopic:
+    type: string
+    doc: this semesters topic of a lecture with changing topics like seminars
 
 evaluation:
   <<: *type_object
