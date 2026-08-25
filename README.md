@@ -282,11 +282,11 @@ most dependencies without annotating them:
 
 ## SRAtic Package requirements ##
 
-SRAtic requires Python 3.12 or newer.
+SRAtic requires Python 3.11 or newer.
 
 ### Debian ###
 
-- python3.12
+- python3.11
 - python3-bibtexparser
 - python3-yaml
 - python3-jinja2
@@ -297,9 +297,9 @@ All of these are installed on the lab machines.
 
 ### Installation on MacOS (with MacPorts) ###
 
-- install **python3.12** and related packages:
-  `sudo port install python312 py312-jinja2 py312-yaml py312-pip`
-- set **python312** as the default **python3**:
-  `sudo port select --set python3 python312`
+- install **python3.11** and related packages:
+  `sudo port install python311 py311-jinja2 py311-yaml py311-pip`
+- set **python311** as the default **python3**:
+  `sudo port select --set python3 python311`
 - the **bibtexparser** is not included in MacPorts, so we need to install via pip:
-  `sudo pip-3.12 install bibtexparser markdown`
+  `sudo pip-3.11 install bibtexparser markdown`

@@ -298,9 +298,7 @@ class Generator:
         dest_stem = page.path.stem
 
         if "relative_root" not in page.data:
-            page.data["relative_root"] = (
-                Path("/").relative_to(url_directory, walk_up=True).as_posix()
-            )
+            page.data["relative_root"] = os.path.relpath("/", url_directory)
 
         # Stores the formatted page body
         formatted = None
@@ -501,11 +499,11 @@ def main() -> NoReturn:
     pages: list[YAMLFragment] = []
     assets: list[str] = []
     env_globals: dict = gen.env.globals
-    for root, dirs, files in Path(".").walk():
-        for fn in files:
-            if fn.startswith(".#") or fn.endswith(".swp"):
+    for root, dirs, files in os.walk("."):
+        for filename in files:
+            if filename.startswith(".#") or filename.endswith(".swp"):
                 continue
-            fn = root / fn
+            fn = Path(root) / filename
             if fn.is_dir():
                 continue
             dst = Path(args.destination or "../www") / fn
