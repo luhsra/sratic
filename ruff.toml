@@ -1,0 +1,5 @@
+[lint]
+ignore = ["LOG015"]
+
+[format]
+quote-style = "double"

@@ -1,7 +1,9 @@
 import pprint
+from typing import Any
 
-def p_print(*args, stripped=True):
-    """ Pretty print all python types.
+
+def p_print(*args: Any, stripped: bool = True) -> None:
+    """Pretty print all python types.
 
     Customized pretty printer. Use for debugging purposes.
     Especially useful for the objects dict.
@@ -19,9 +21,9 @@ def p_print(*args, stripped=True):
     newargs = []
     if stripped:
         for arg in args:
-            if isinstance(arg, dict) and 'page-body' in arg:
+            if isinstance(arg, dict) and "page-body" in arg:
                 tmp = arg.copy()
-                tmp['page-body'] = '<stripped>'
+                tmp["page-body"] = "<stripped>"
                 newargs.append(tmp)
             else:
                 newargs.append(arg)

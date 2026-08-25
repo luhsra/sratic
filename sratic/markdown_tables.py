@@ -49,25 +49,30 @@ http://docutils.svn.sourceforge.net/viewvc/docutils/trunk/docutils/docutils/pars
 """
 
 import re
+import xml.etree.ElementTree as etree
+from collections.abc import Iterator
+from typing import Any
 
 import markdown
-import xml.etree.ElementTree as etree
-
+import markdown.blockprocessors
 
 
 class GridTableExtension(markdown.Extension):
-    def extendMarkdown(self, md, **kwargs): # , md_globals):
+    def extendMarkdown(
+        self, md: Any, **kwargs: Any
+    ) -> None:  # , md_globals:
         blockprocessors = md.parser.blockprocessors
         try:
             # Try using `.add` for compatibility with older versions of the Markdown package.
-            blockprocessors.add('grid-table', GridTableProcessor(md.parser), '<hashheader')
+            blockprocessors.add(
+                "grid-table", GridTableProcessor(md.parser), "<hashheader"
+            )
         except AttributeError:
             # Use a priority of 65 to be processed before the `hashheader` extension.
-            blockprocessors.register(GridTableProcessor(md.parser), 'grid-table', 65)
+            blockprocessors.register(GridTableProcessor(md.parser), "grid-table", 65)
 
 
-
-def makeExtension(*args, **kwargs):
+def makeExtension(*args: Any, **kwargs: Any) -> GridTableExtension:
     return GridTableExtension(*args, **kwargs)
 
 
@@ -78,7 +83,17 @@ class GridTableCell:
     width and a height. It also has a colspan and rowspan count for cells that
     span multiple rows or columns.
     """
-    def __init__(self, start_row, start_col, width=1, height=1, colspan=1, rowspan=1, text=""):
+
+    def __init__(
+        self,
+        start_row: int,
+        start_col: int,
+        width: int = 1,
+        height: int = 1,
+        colspan: int = 1,
+        rowspan: int = 1,
+        text: str = "",
+    ) -> None:
         self.text = text
         self._start_row = max(0, start_row)
         self._start_col = max(0, start_col)
@@ -87,28 +102,31 @@ class GridTableCell:
         self._colspan = max(1, colspan)
         self._rowspan = max(1, rowspan)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
-            f'GridTableCell(start_row={self._start_row!r}, start_col={self._start_col!r}, '
-            f'width={self._width!r}, height={self._height!r}, colspan={self._colspan!r}, '
-            f'rowspan={self._rowspan!r}, text={self.text!r})'
+            f"GridTableCell(start_row={self._start_row!r}, start_col={self._start_col!r}, "
+            f"width={self._width!r}, height={self._height!r}, colspan={self._colspan!r}, "
+            f"rowspan={self._rowspan!r}, text={self.text!r})"
         )
 
-    def __eq__(self, other):
-        return (self.start_row == other.start_row and
-                self.start_col == other.start_col and
-                self.width == other.width and
-                self.height == other.height and
-                self.colspan == other.colspan and
-                self.rowspan == other.rowspan)
+    def __eq__(self, other: object) -> bool:
+        return (
+            isinstance(other, GridTableCell)
+            and self.start_row == other.start_row
+            and self.start_col == other.start_col
+            and self.width == other.width
+            and self.height == other.height
+            and self.colspan == other.colspan
+            and self.rowspan == other.rowspan
+        )
 
     @property
-    def start_row(self):
+    def start_row(self) -> int:
         """Starting row for the cell."""
         return self._start_row
 
     @start_row.setter
-    def start_row(self, value):
+    def start_row(self, value: int) -> None:
         """
         Sets the starting row of the cell to either 0 or the value passed in,
         depending on which is larger.
@@ -116,12 +134,12 @@ class GridTableCell:
         self._start_row = max(0, value)
 
     @property
-    def start_col(self):
+    def start_col(self) -> int:
         """Starting column for the cell."""
         return self._start_col
 
     @start_col.setter
-    def start_col(self, value):
+    def start_col(self, value: int) -> None:
         """
         Sets the starting column of the cell to either 0 or the value passed
         in, depending on which is larger.
@@ -129,12 +147,12 @@ class GridTableCell:
         self._start_col = max(0, value)
 
     @property
-    def width(self):
+    def width(self) -> int:
         """Width (in number of characters) of the cell."""
         return self._width
 
     @width.setter
-    def width(self, value):
+    def width(self, value: int) -> None:
         """
         Sets the width (in number of characters) of the cell to either 1 or the
         value passed in, depending on which is larger.
@@ -142,12 +160,12 @@ class GridTableCell:
         self._width = max(1, value)
 
     @property
-    def height(self):
+    def height(self) -> int:
         """Height (in number of characters) of the cell."""
         return self._height
 
     @height.setter
-    def height(self, value):
+    def height(self, value: int) -> None:
         """
         Sets the height (in number of characters) of the cell to either 1 or
         the value passed in, depending on which is larger.
@@ -155,12 +173,12 @@ class GridTableCell:
         self._height = max(1, value)
 
     @property
-    def colspan(self):
+    def colspan(self) -> int:
         """Number of columns that this cell spans."""
         return self._colspan
 
     @colspan.setter
-    def colspan(self, value):
+    def colspan(self, value: int) -> None:
         """
         Sets the number of columns that this cell spans to either 1 or the
         value passed in, depending on which is larger.
@@ -168,12 +186,12 @@ class GridTableCell:
         self._colspan = max(1, value)
 
     @property
-    def rowspan(self):
+    def rowspan(self) -> int:
         """Number of rows that this cell spans."""
         return self._rowspan
 
     @rowspan.setter
-    def rowspan(self, value):
+    def rowspan(self, value: int) -> None:
         """
         Sets the number of rows that this cell spans to either 1 or the value
         passed in, depending on which is larger.
@@ -181,7 +199,7 @@ class GridTableCell:
         self._rowspan = max(1, value)
 
     @property
-    def end_row(self):
+    def end_row(self) -> int:
         """
         Returns the index of which row the cell ends at within the block. This
         is changed by modifying either the starting row or the height of this
@@ -190,7 +208,7 @@ class GridTableCell:
         return self._start_row + self._height
 
     @property
-    def end_col(self):
+    def end_col(self) -> int:
         """
         Returns the index of which column the cell ends at within the block.
         This is changed by modifying either the starting column or the width of
@@ -205,26 +223,34 @@ class GridTableRow:
     within a row may not start at the same index as where the row starts, since
     they may span multiple columns.
     """
-    def __init__(self, start_row, is_header=False):
+
+    def __init__(self, start_row: int, is_header: bool = False) -> None:
         self._cells = []
         self._start_row = start_row
         self._height = None
         self.is_header = is_header
 
-    def add_cell(self, cell):
+    def add_cell(self, cell: GridTableCell) -> bool:
         """
         Adds a cell to the appropriate position in the row based on where its
         left and right edges are. This returns false if a cell overlaps with
         another cell in the row, otherwise it returns true.
         """
-        for i in range(0, len(self._cells)):
+        for i in range(len(self._cells)):
             if cell.start_col + cell.width <= self._cells[i].start_col:
-                if i > 0 and not self._cells[i-1].start_col + self._cells[i-1].width <= cell.start_col:
+                if (
+                    i > 0
+                    and not self._cells[i - 1].start_col + self._cells[i - 1].width
+                    <= cell.start_col
+                ):
                     return False
                 self._cells.insert(i, cell)
                 break
         else:
-            if len(self._cells) > 0 and self._cells[-1].start_col + self._cells[-1].width > cell.start_col:
+            if (
+                len(self._cells) > 0
+                and self._cells[-1].start_col + self._cells[-1].width > cell.start_col
+            ):
                 return False
             self._cells.append(cell)
         relative_height = cell.start_row + cell.height - self._start_row
@@ -232,7 +258,7 @@ class GridTableRow:
             self._height = relative_height
         return True
 
-    def get_all_cells(self):
+    def get_all_cells(self) -> Iterator[GridTableCell]:
         """
         A generator which returns all cells within the row. I use a generator
         since I mainly use this in for loops, and it's more memory efficient
@@ -241,16 +267,17 @@ class GridTableRow:
         for cell in self._cells:
             yield cell
 
-    def get_all_cells_taller_than_this_row(self):
+    def get_all_cells_taller_than_this_row(self) -> Iterator[GridTableCell]:
         """
         A generator that gets all cells that are taller than this row (which
         means they span multiple rows).
         """
+        assert self._height is not None
         for cell in self._cells:
             if cell.start_row + cell.height > self._start_row + self._height:
                 yield cell
 
-    def get_all_cells_starting_at_this_row(self):
+    def get_all_cells_starting_at_this_row(self) -> Iterator[GridTableCell]:
         """
         A generator that gets all cells that start at this row (which means
         they are not spanning from another row).
@@ -259,7 +286,9 @@ class GridTableRow:
             if cell.start_row == self._start_row:
                 yield cell
 
-    def get_cell_starting_at_this_row_at_column(self, column):
+    def get_cell_starting_at_this_row_at_column(
+        self, column: int
+    ) -> GridTableCell | None:
         """
         Returns the cell (or None if no cell is found) that starts in this row,
         at the column specified.
@@ -272,7 +301,7 @@ class GridTableRow:
         return None
 
     @property
-    def height(self):
+    def height(self) -> int | None:
         """
         Returns the height (in number of characters) of this row. The height is
         equal to the height of the shortest cell in this row.
@@ -280,20 +309,21 @@ class GridTableRow:
         return self._height
 
     @property
-    def start_row(self):
+    def start_row(self) -> int:
         """The index of the line in the block at which this row starts."""
         return self._start_row
 
     @property
-    def end_row(self):
+    def end_row(self) -> int:
         """
         The index of the line in the block at which this row ends. This is
         equal to the starting row plus the height.
         """
+        assert self._height is not None
         return self._start_row + self._height
 
     @property
-    def start_col(self):
+    def start_col(self) -> int:
         """
         The column in the block at which this row starts. If a cell starts at
         this row, that cell's start column is returned. Otherwise, the furthest
@@ -309,10 +339,11 @@ class GridTableRow:
                 left_cell = cell
             else:
                 break
+        assert left_cell is not None
         return left_cell.end_col
 
     @property
-    def end_col(self):
+    def end_col(self) -> int:
         """
         Returns the ending column for this row. The ending column is equal to
         the last cell's ending column.
@@ -331,14 +362,24 @@ class GridTable:
         width: How many characters wide the table is.
         height: How many characters tall the table is.
     """
-    def __init__(self, start_row, start_col, height, width, first_row_header=False):
+
+    def __init__(
+        self,
+        start_row: int,
+        start_col: int,
+        height: int,
+        width: int,
+        first_row_header: bool = False,
+    ) -> None:
         self._rows = [GridTableRow(start_row, is_header=first_row_header)]
         self._start_row = start_row
         self._start_col = start_col
         self._width = width
         self._height = height
 
-    def new_row(self, is_header=False, header_location=-1):
+    def new_row(
+        self, is_header: bool = False, header_location: int = -1
+    ) -> tuple[int, int]:
         """
         Creates a new row which starts at the end of the previous row. Any
         cells that are larger than the height of this row are added to the new
@@ -350,23 +391,23 @@ class GridTable:
             self._rows[-1].add_cell(cell)
         return self._rows[-1].start_row, self._rows[-1].start_col
 
-    def add_cell(self, cell):
+    def add_cell(self, cell: GridTableCell) -> bool:
         """Adds a cell to the last row in the table."""
         return self._rows[-1].add_cell(cell)
 
-    def get_all_rows(self):
+    def get_all_rows(self) -> Iterator[GridTableRow]:
         """Generator that returns all rows in the table."""
         for row in self._rows:
             yield row
 
-    def get_all_cells_starting_at_column(self, column):
+    def get_all_cells_starting_at_column(self, column: int) -> Iterator[GridTableCell]:
         """Generator that yields all cells in all rows that start at a specific column."""
         for row in self._rows:
             cell = row.get_cell_starting_at_this_row_at_column(column)
             if cell is not None:
                 yield cell
 
-    def calculate_colspans(self):
+    def calculate_colspans(self) -> None:
         """
         After all cells are added to the table, this function will calculate
         all colspans for all cells in the array. It does this by walking
@@ -385,7 +426,7 @@ class GridTable:
             for cell in cells:
                 if cell.end_col < end_col:
                     end_col = cell.end_col
-            for i in range(len(cells)-1, -1, -1):
+            for i in range(len(cells) - 1, -1, -1):
                 if cells[i].end_col > end_col:
                     cells[i].colspan += 1
                 else:
@@ -394,27 +435,27 @@ class GridTable:
             end_col = self.end_col
 
     @property
-    def start_row(self):
+    def start_row(self) -> int:
         """Index of the row (in number of characters) that the table starts at."""
         return self._start_row
 
     @property
-    def start_col(self):
+    def start_col(self) -> int:
         """Index of the column (in number of characters) that the table starts at."""
         return self._start_col
 
     @property
-    def width(self):
+    def width(self) -> int:
         """Width (in number of characters) of the table."""
         return self._width
 
     @property
-    def height(self):
+    def height(self) -> int:
         """Height (in number of characters) of the table."""
         return self._height
 
     @property
-    def end_row(self):
+    def end_row(self) -> int:
         """
         Returns the index of the row (in number of characters) that the table
         ends at. It is equal to the starting row plus the height.
@@ -422,7 +463,7 @@ class GridTable:
         return self._start_row + self._height
 
     @property
-    def end_col(self):
+    def end_col(self) -> int:
         """
         Returns the index of the column (in number of characters) that the
         table ends at. It is equal to the starting row plus the height.
@@ -430,7 +471,7 @@ class GridTable:
         return self._start_col + self._width
 
     @property
-    def has_header(self):
+    def has_header(self) -> bool:
         return self._rows[0].is_header
 
 
@@ -439,9 +480,10 @@ class GridTableProcessor(markdown.blockprocessors.BlockProcessor):
     The markdown block processor used to parse a grid table. A malformed grid
     table is generated as a block of text instead of being removed.
     """
-    _header_regex = r'\+=+(\+=+)*\+'
 
-    def test(self, parent, block):
+    _header_regex = r"\+=+(\+=+)*\+"
+
+    def test(self, parent: etree.Element, block: str) -> bool:
         """
         This function tests to see if the block of text passed in is a table or
         not. A table is thus defined as a block of text which has more than 2
@@ -449,13 +491,20 @@ class GridTableProcessor(markdown.blockprocessors.BlockProcessor):
         on both the top an bottom right corners, and has a '|' at the beginning
         and end of the first and last rows.
         """
-        rows = [r.strip() for r in block.split('\n')]
-        return (len(rows) > 2 and rows[0][:2] == "+-" and rows[0][-2:] == "-+"
-                and rows[1][0] == '|' and rows[1][-1] == '|'
-                and rows[-2][0] == '|' and rows[-2][-1] == '|'
-                and rows[-1][:2] == "+-" and rows[-1][-2:] == "-+")
+        rows = [r.strip() for r in block.split("\n")]
+        return (
+            len(rows) > 2
+            and rows[0][:2] == "+-"
+            and rows[0][-2:] == "-+"
+            and rows[1][0] == "|"
+            and rows[1][-1] == "|"
+            and rows[-2][0] == "|"
+            and rows[-2][-1] == "|"
+            and rows[-1][:2] == "+-"
+            and rows[-1][-2:] == "-+"
+        )
 
-    def run(self, parent, blocks):
+    def run(self, parent: etree.Element, blocks: list[str]) -> None:
         """
         Starts parsing the block of text which contains the table. It first
         finds the header (if one exists) as ended by a row of '=' characters.
@@ -465,65 +514,65 @@ class GridTableProcessor(markdown.blockprocessors.BlockProcessor):
         Otherwise, it is rendered as a table with the appropriate row and
         column spans.
         """
-        orig_block = [r.strip() for r in blocks.pop(0).split('\n')]
+        orig_block = [r.strip() for r in blocks.pop(0).split("\n")]
         body_block = orig_block[:]
         success, body = self._get_all_cells(body_block)
         if not success:
-            self._render_as_block(parent, '\n'.join(orig_block))
+            self._render_as_block(parent, "\n".join(orig_block))
             return
-        table = etree.SubElement(parent, 'table')
+        table = etree.SubElement(parent, "table")
         self._render_rows(body, table)
 
-    def _render_as_block(self, parent, text):
+    def _render_as_block(self, parent: etree.Element, text: str) -> None:
         """
         Renders a table as a block of text instead of a table. This isn't done
         correctly, since the serialized items are serialized again, but I'll
         fix this later.
         """
-        trans_table = [(' ', '&nbsp;'), ('<', '&lt;'), ('>', '&gt;'), ('&', '&amp;')]
+        trans_table = [(" ", "&nbsp;"), ("<", "&lt;"), (">", "&gt;"), ("&", "&amp;")]
         for from_char, to_char in trans_table:
             text = text.replace(from_char, to_char)
-        div = etree.SubElement(parent, 'div')
-        div.set('class', 'grid-table-error')
+        div = etree.SubElement(parent, "div")
+        div.set("class", "grid-table-error")
         div.text = text
 
-    def _header_exists(self, block):
+    def _header_exists(self, block: list[str]) -> tuple[bool, int, list[str]]:
         """Checks if a header exists. A header is defined by a row of '=' characters."""
-        for row, i in zip(block, range(0, len(block))):
+        for row, i in zip(block, range(len(block))):
             if re.match(self._header_regex, row):
                 return True, i, self._get_header(block)
         return False, -1, block
 
-    def _get_header(self, block):
+    def _get_header(self, block: list[str]) -> list[str]:
         """
         Separates the header of the table from the body, putting them both into
         their own separate blocks and replacing the header separator with a
         normal separator.
         """
         block = block[:]
-        for i in range(0, len(block)):
+        for i in range(len(block)):
             if re.match(self._header_regex, block[i]):
-                block[i] = block[i].replace('=', '-')
+                block[i] = block[i].replace("=", "-")
                 break
         return block
 
-    def _render_rows(self, table, parent):
+    def _render_rows(self, table: GridTable, parent: etree.Element) -> None:
         """Renders all rows in a table into 'tr' elements, and all cells into all 'td' elements."""
-        header_cell_tag = 'th'
-        body_cell_tag = 'td'
+        header_cell_tag = "th"
+        body_cell_tag = "td"
         rendered = []
         if table.has_header:
-            header_subparent = etree.SubElement(parent, 'thead')
-            body_subparent = etree.SubElement(parent, 'tbody')
+            header_subparent = etree.SubElement(parent, "thead")
+            body_subparent = etree.SubElement(parent, "tbody")
         else:
-            header_subparent = body_subparent = etree.SubElement(parent, 'tbody')
+            header_subparent = body_subparent = etree.SubElement(parent, "tbody")
         for row in table.get_all_rows():
             if table.has_header and row.is_header:
                 subparent = header_subparent
             else:
                 subparent = body_subparent
             if len(list(row.get_all_cells())) != 0:
-                tr = etree.SubElement(subparent, 'tr')
+                tr = etree.SubElement(subparent, "tr")
             for cell in row.get_all_cells():
                 if not cell in rendered:
                     if row.is_header:
@@ -531,11 +580,11 @@ class GridTableProcessor(markdown.blockprocessors.BlockProcessor):
                     else:
                         cell_element = etree.SubElement(tr, body_cell_tag)
                     rendered.append(cell)
-                    self.parser.parseBlocks(cell_element, cell.text.split('\n\n'))
-                    cell_element.set('rowspan', str(cell.rowspan))
-                    cell_element.set('colspan', str(cell.colspan))
+                    self.parser.parseBlocks(cell_element, cell.text.split("\n\n"))
+                    cell_element.set("rowspan", str(cell.rowspan))
+                    cell_element.set("colspan", str(cell.colspan))
 
-    def _get_all_cells(self, block):
+    def _get_all_cells(self, block: list[str]) -> tuple[bool, GridTable]:
         """
         Finds all cells within the block and assembles them into a table
         object. Not all rows in this table will have the same length due to
@@ -545,12 +594,14 @@ class GridTableProcessor(markdown.blockprocessors.BlockProcessor):
         """
         start_row = start_col = 0
         header_exists, header_location, block = self._header_exists(block)
-        table = GridTable(start_row, start_col, len(block)-1, len(block[0])-1, header_exists)
-        while start_row < len(block)-1:
+        table = GridTable(
+            start_row, start_col, len(block) - 1, len(block[0]) - 1, header_exists
+        )
+        while start_row < len(block) - 1:
             new_cell = self._scan_cell(block, start_row, start_col)
             if new_cell is None or not table.add_cell(new_cell):
                 return False, table
-            if start_col + new_cell.width >= len(block[start_row])-1:
+            if start_col + new_cell.width >= len(block[start_row]) - 1:
                 is_header = header_exists and table._rows[-1].end_row < header_location
                 start_row, start_col = table.new_row(is_header=is_header)
             else:
@@ -558,18 +609,22 @@ class GridTableProcessor(markdown.blockprocessors.BlockProcessor):
         table.calculate_colspans()
         return True, table
 
-    def _scan_cell(self, block, start_row, start_col):
+    def _scan_cell(
+        self, block: list[str], start_row: int, start_col: int
+    ) -> GridTableCell | None:
         """
         Starts scanning for a specific cell by checking the starting character
         to make sure it's valid. It scans in the order right, down, left, up
         to see if it can get back to its starting position. If it can, a new
         GridTableCell is returned, and if it can't, None is returned.
         """
-        if block[start_row][start_col] != '+':
+        if block[start_row][start_col] != "+":
             return None
         return self._scan_right(block, start_row, start_col)
 
-    def _scan_right(self, block, start_row, start_col):
+    def _scan_right(
+        self, block: list[str], start_row: int, start_col: int
+    ) -> GridTableCell | None:
         """
         Scans right until it gets to a '+' sign. It then starts scanning down
         to see if it can find a complete path, if it can't, it continues
@@ -578,19 +633,25 @@ class GridTableProcessor(markdown.blockprocessors.BlockProcessor):
         width = 1
         while start_col + width < len(block[start_row]):
             cur_col = start_col + width
-            if block[start_row][cur_col] == '+':
+            if block[start_row][cur_col] == "+":
                 result = self._scan_down(block, start_row, start_col, cur_col)
                 if result is None:
                     width += 1
                     continue
                 return result
-            elif block[start_row][cur_col] == '-':
+            elif block[start_row][cur_col] == "-":
                 width += 1
             else:
                 break
         return None
 
-    def _scan_down(self, block, start_row, start_col, cur_col):
+    def _scan_down(
+        self,
+        block: list[str],
+        start_row: int,
+        start_col: int,
+        cur_col: int,
+    ) -> GridTableCell | None:
         """
         Scans down until it gets to a '+' sign. It then starts scanning left
         to see if it can find a complete path back to the starting position.
@@ -600,19 +661,26 @@ class GridTableProcessor(markdown.blockprocessors.BlockProcessor):
         height = 1
         while start_row + height < len(block):
             cur_row = start_row + height
-            if block[cur_row][cur_col] == '+':
+            if block[cur_row][cur_col] == "+":
                 result = self._scan_left(block, start_row, start_col, cur_col, cur_row)
                 if result is None:
                     height += 1
                     continue
                 return result
-            elif block[cur_row][cur_col] == '|':
+            elif block[cur_row][cur_col] == "|":
                 height += 1
             else:
                 break
         return None
 
-    def _scan_left(self, block, start_row, start_col, cur_col, cur_row):
+    def _scan_left(
+        self,
+        block: list[str],
+        start_row: int,
+        start_col: int,
+        cur_col: int,
+        cur_row: int,
+    ) -> GridTableCell | None:
         """
         Scans left until it gets to a '+' sign. It then starts scanning up to
         verify that the path found is a complete cell and that it gets back to
@@ -622,19 +690,29 @@ class GridTableProcessor(markdown.blockprocessors.BlockProcessor):
         width = 1
         while cur_col - width >= 0:
             check_col = cur_col - width
-            if block[cur_row][check_col] == '+':
-                result = self._scan_up(block, start_row, start_col, cur_col, cur_row, check_col)
+            if block[cur_row][check_col] == "+":
+                result = self._scan_up(
+                    block, start_row, start_col, cur_col, cur_row, check_col
+                )
                 if result is None:
                     width += 1
                     continue
                 return result
-            elif block[cur_row][check_col] == '-':
+            elif block[cur_row][check_col] == "-":
                 width += 1
             else:
                 break
         return None
 
-    def _scan_up(self, block, start_row, start_col, cur_col, cur_row, check_col):
+    def _scan_up(
+        self,
+        block: list[str],
+        start_row: int,
+        start_col: int,
+        cur_col: int,
+        cur_row: int,
+        check_col: int,
+    ) -> GridTableCell | None:
         """
         Scans up until it gets to a '+' sign. If the '+' sign is in the
         starting position, it returns a new GridTableCell. Otherwise, it
@@ -645,46 +723,61 @@ class GridTableProcessor(markdown.blockprocessors.BlockProcessor):
         height = 1
         while cur_row - height >= 0:
             check_row = cur_row - height
-            if block[check_row][check_col] == '+':
+            if block[check_row][check_col] == "+":
                 if start_row == check_row and start_col == check_col:
-                    cell = GridTableCell(start_row, start_col, cur_col - start_col, height)
-                    cell.text = self._gather_text(block, cell.start_row, cell.start_col, cell.end_row, cell.end_col)
+                    cell = GridTableCell(
+                        start_row, start_col, cur_col - start_col, height
+                    )
+                    cell.text = self._gather_text(
+                        block,
+                        cell.start_row,
+                        cell.start_col,
+                        cell.end_row,
+                        cell.end_col,
+                    )
                     return cell
                 result = self._scan_right(block, check_row, check_col)
                 if result is not None:
                     return None
                 height += 1
                 continue
-            elif block[check_row][check_col] == '|':
+            elif block[check_row][check_col] == "|":
                 height += 1
             else:
                 break
         return None
 
-    def _gather_text(self, block, start_row, start_col, end_row, end_col):
+    def _gather_text(
+        self,
+        block: list[str],
+        start_row: int,
+        start_col: int,
+        end_row: int,
+        end_col: int,
+    ) -> str:
         """
         Gathers the text within the cell defined by the start row, start
         column, end row, and end column and returns them as one string.
         """
         text = []
-        for i in range(start_row+1, end_row):
-            text.append(block[i][start_col+1:end_col].rstrip())
-        return '\n'.join(self._unindent_one_level(text))
+        for i in range(start_row + 1, end_row):
+            text.append(block[i][start_col + 1 : end_col].rstrip())
+        return "\n".join(self._unindent_one_level(text))
 
-    def _unindent_one_level(self, text):
+    def _unindent_one_level(self, text: list[str]) -> list[str]:
         """
         Unindents the text one level, up to the index of the farthest-left
         non-blank character in the text.
         """
         chars = 0
-        for i in range(0, len(max(text, key=len))):
+        for i in range(len(max(text, key=len))):
             for line in text:
-                if i < len(line) and line[i] != ' ':
+                if i < len(line) and line[i] != " ":
                     break
             else:
                 chars += 1
-                continue # This skips the break below
+                continue  # This skips the break below
             break
-        for i in range(0, len(text)):
+        for i in range(len(text)):
             text[i] = text[i][chars:]
         return text

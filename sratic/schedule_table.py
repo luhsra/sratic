@@ -1,12 +1,14 @@
+import csv
+import html
 import logging
+import re
+from datetime import datetime
+from pathlib import Path
+from textwrap import dedent
+
 import markdown
 from markdown.extensions import Extension
 from markdown.preprocessors import Preprocessor
-from textwrap import dedent
-import csv
-import re
-from datetime import datetime
-import html
 
 
 class SchedulePreprocessor(Preprocessor):
@@ -68,7 +70,7 @@ def table_from_csv(code: str) -> str:
     if not rows:
         return ""
 
-    header = f'<tr><th><small class="text-muted">KW: </small>Datum</th>'
+    header = '<tr><th><small class="text-muted">KW: </small>Datum</th>'
     for cell in rows[0][1:]:
         header += f"<th>{html.escape(cell)}</th>"
     header += "</tr>"
@@ -128,7 +130,7 @@ def format_cell(cell: str) -> str:
                 return f'<span class="label label-{type_class}">{prefix}{number}</span> {content}'
 
     if cell == "R" or cell == "Rechnerübung":
-        return f'<span class="label label-warning">R</span> Rechnerübung'
+        return '<span class="label label-warning">R</span> Rechnerübung'
     return cell
 
 
@@ -140,7 +142,7 @@ class ScheduleExtension(Extension):
 
 def schedule_table(path: str) -> str:
     # TODO: Relative file path?
-    logging.info(f"Loading schedule from {path}")
-    with open(path, "r") as f:
+    logging.info("Loading schedule from %s", path)
+    with Path(path).open("r") as f:
         code = f.read()
     return table_from_csv(code)
