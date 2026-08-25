@@ -20,13 +20,13 @@ class Constructors:
     MARKDOWN = 5
     LOAD_CSV = 6
 
-    handlers: dict[int, Callable[["YAMLFragment", Any, Any], Any]] = {}
+    handlers: dict[int, Callable[["YAMLFragment", Any, int | str], Any]] = {}
 
     @staticmethod
     def add(
         key: str,
         tag: int,
-        fn: Callable[["YAMLFragment", Any, Any], Any],
+        fn: Callable[["YAMLFragment", Any, int | str], Any],
     ) -> None:
         if tag in Constructors.handlers:
             return
@@ -35,11 +35,13 @@ class Constructors:
 
 
 class YAMLFragment:
-    def __init__(self, config: Any) -> None:
-        self.config = config
-        self.sources: set[Path] = set()
-        self.data: Any = None
-        self.path: Path | None = None  # Relative path to source file
+    def __init__(self, config: Any, path: Path, data: Any) -> None:
+        self.config: Any = config
+        self.path: Path = path  # Relative path to source file
+        self.data: Any = data
+        self.sources: set[Path] = {path}
+
+        self.__include_filename(self.data, path)
 
     def __repr__(self) -> str:
         return f"YAMLFragment('{self.path}')"
@@ -53,44 +55,6 @@ class YAMLFragment:
                 self.__include_filename(data[elem], fn)
         elif type(data) is tuple and data and data[0] in Constructors.handlers:
             data[1].append(fn)
-
-    def load_from_file(self, filename: Path) -> None:
-        """Loads the data from the given source file into this YAML Fragment"""
-        if not filename.exists():
-            # Fallback to SRAtic provided files
-            filename = Path(__file__).parent / "data" / filename.name
-        self.path = filename
-        with Path(filename).open() as stream:
-            try:
-                if filename.suffix == ".myml":
-                    self.data = list(yaml.load_all(stream, Loader=yaml.Loader))
-                else:
-                    self.data = yaml.load(stream, Loader=yaml.Loader)
-            except Exception as x:
-                logging.error("Error in %s", filename)
-                raise x
-
-        self.__include_filename(self.data, filename)
-        self.sources.add(filename)
-
-    def load_from_string(self, text: str, origin_filename: Path | None = None) -> None:
-        self.path = origin_filename
-        try:
-            self.data = yaml.load(io.StringIO(text), Loader=yaml.Loader)
-        except Exception as x:
-            logging.error("Error in %s", origin_filename)
-            raise x
-
-        if origin_filename:
-            self.__include_filename(self.data, origin_filename)
-            self.sources.add(origin_filename)
-
-    def load_nothing(self, origin_filename: Path | None = None) -> None:
-        self.path = origin_filename
-        self.data = {}
-        if origin_filename:
-            self.__include_filename(self.data, origin_filename)
-            self.sources.add(origin_filename)
 
     def objects(self) -> Iterator[dict[str, Any]]:
         """Iterator over all objects"""
@@ -152,10 +116,23 @@ class YAMLDataFactory:
         filename = filename.absolute()
         if filename in self.__cache:
             return self.__cache[filename]
-        # Load data file
-        fragment = YAMLFragment(self.__config)
+
         if filename.suffix in {".yml", ".myml"}:
-            fragment.load_from_file(filename)
+            # Load data file
+            if not filename.exists():
+                # Fallback to SRAtic provided files
+                filename = Path(__file__).parent / "data" / filename.name
+            with Path(filename).open() as stream:
+                try:
+                    if filename.suffix == ".myml":
+                        data = list(yaml.load_all(stream, Loader=yaml.Loader))
+                    else:
+                        data = yaml.load(stream, Loader=yaml.Loader)
+                except Exception as x:
+                    logging.error("Error in %s", filename)
+                    raise x
+
+            fragment = YAMLFragment(self.__config, filename, data)
         else:
             # Scrape data from file preface
             with Path(filename).open() as fd:
@@ -167,14 +144,20 @@ class YAMLDataFactory:
                         if line is None or line.strip() == "---":
                             break
                         text.append(line)
-                    fragment.load_from_string("".join(text), filename)
+
+                    try:
+                        data = yaml.load(io.StringIO("".join(text)), Loader=yaml.Loader)
+                    except Exception as x:
+                        logging.error("Error in %s", filename)
+                        raise x
+
+                    fragment = YAMLFragment(self.__config, filename, data)
                 else:
-                    fragment.load_nothing(filename)
+                    fragment = YAMLFragment(self.__config, filename, {})
                 ### Page Content
                 fragment.data["page-body"] = fd.read()
 
-            # Pages also read in their directory 'variables' file,
-            # implicitly
+            # Pages also read in their directory 'variables' file, implicitly
             dirname = Path(filename).parent
             dir_file = dirname / "variables.yml"
             if dir_file.exists():
@@ -200,8 +183,7 @@ class YAMLDataFactory:
         """Loads file, and resolves all external references. As a result, we
         get an newly created YAML Fragment."""
 
-        ret = YAMLFragment(self.__config)
-        ret.load_nothing(filename)
+        ret = YAMLFragment(self.__config, filename, {})
         ret.data = [(Constructors.INCLUDE, [filename, "./IGNORE.yml"])]
         again = True
         while again:
@@ -233,8 +215,14 @@ class YAMLDataFactory:
             if splice_data is None:
                 splice_data = other.data.copy()
             elif type(other.data) is dict:
+                assert type(splice_data) is dict, (
+                    f"Splicing {fn} failed. Type mismatch ({type(splice_data)} != {type(other.data)})"
+                )
                 splice_data.update(other.data)
             else:
+                assert type(splice_data) is list, (
+                    f"Splicing {fn} failed. Type mismatch ({type(splice_data)} != {type(other.data)})"
+                )
                 splice_data += other.data
 
         if type(parent) is list:
@@ -301,7 +289,8 @@ class YAMLDataFactory:
                     and handlers[value[0]](fragment, x, key)
                 ):
                     again = True
-                # Recursion!
+
+                # Recursion
                 if type(value) in (list, dict):
                     _, change = self.__resolve(fragment, value)
                     again = change or again

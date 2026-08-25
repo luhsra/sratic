@@ -65,7 +65,7 @@ class ObjectStore:
         return (p_name, str(p_base / p_name))
 
     def crawl_pages(
-        self, schema: YAMLFragment, data_dir: Any, pages: list[Any]
+        self, schema: YAMLFragment, data_dir: Any, pages: list[YAMLFragment]
     ) -> None:
         # The dict that maps every object id to its object
         # ID -> object
@@ -81,7 +81,9 @@ class ObjectStore:
         # have an ID, we assign the local part of the page as an id. E.g.
         # `/index.html' for the root page
         for page in pages:
-            page.data["href"] = f"/{page.path.with_suffix('.html').as_posix().lstrip('/')}"
+            page.data["href"] = (
+                f"/{page.path.with_suffix('.html').as_posix().lstrip('/')}"
+            )
             if "id" in page.data:
                 if "/" not in page.data["id"]:
                     name, href = self.permalink(data_dir, page.data["id"], page)

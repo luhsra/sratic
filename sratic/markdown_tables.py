@@ -264,8 +264,7 @@ class GridTableRow:
         since I mainly use this in for loops, and it's more memory efficient
         and code efficient with a generator.
         """
-        for cell in self._cells:
-            yield cell
+        yield from self._cells
 
     def get_all_cells_taller_than_this_row(self) -> Iterator[GridTableCell]:
         """
@@ -397,8 +396,7 @@ class GridTable:
 
     def get_all_rows(self) -> Iterator[GridTableRow]:
         """Generator that returns all rows in the table."""
-        for row in self._rows:
-            yield row
+        yield from self._rows
 
     def get_all_cells_starting_at_column(self, column: int) -> Iterator[GridTableCell]:
         """Generator that yields all cells in all rows that start at a specific column."""
@@ -424,8 +422,7 @@ class GridTable:
                 if cell not in cells:
                     cells.append(cell)
             for cell in cells:
-                if cell.end_col < end_col:
-                    end_col = cell.end_col
+                end_col = min(end_col, cell.end_col)
             for i in range(len(cells) - 1, -1, -1):
                 if cells[i].end_col > end_col:
                     cells[i].colspan += 1
