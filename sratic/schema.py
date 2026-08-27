@@ -42,9 +42,7 @@ def check_schema(
             assert field in obj, f"Required field '{field}' is missing: {obj}"
 
         if rules.get("recommended") and not field in obj:
-            logging.warning(
-                "Recommended field '%s' is missing: %s", field, obj["id"]
-            )
+            logging.warning("Recommended field '%s' is missing: %s", field, obj["id"])
         if field not in obj:
             continue
         if "type" in rules:

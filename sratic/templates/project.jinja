@@ -8,7 +8,7 @@
 
 {% macro makefooter(project) %}
 {# if there are news, list only the 2 most recent news #}
-{% set news=object_list('news', project=project.id) %}
+{% set news=object_list('news', related=project.id) %}
 {% if news %}
 <h2>Latest News</h2>
 {% for item in news | sorted | reverse | batch (2) | first %}
@@ -17,7 +17,7 @@
 {# if there are more than 2 news AND a *_news page exists, add link to that #}
 {% if (news | count) > 2 and deref(project.id ~'_news', fail=False)  %}
 {{ nav.link(project.id~'_news', title='More news...') }}
-{% endif %} 
+{% endif %}
 {% endif %}
 
 
@@ -51,7 +51,7 @@
 {% macro makenews(project) %}
 
 <h2>{{nav.link(project)}} News And Trivia</h2>
-{% for item in object_list('news', maxage=32768, project=project) | sorted | reverse %}
+{% for item in object_list('news', maxage=32768, related=project.id) | sorted | reverse %}
 {{ show.show(item) }}
 {% endfor %}
 

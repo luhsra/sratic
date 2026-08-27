@@ -3,21 +3,243 @@ import logging
 import re
 import uuid as libuuid
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 import yaml
 
 from .metadata import Constructor, Replace, YAMLFragment
 from .schema import check_schema, schema_for_obj
 
+T = TypeVar("T")
 
-def wrap_list(lst: Any) -> list[Any]:
+
+def wrap_list(lst: T | list[T]) -> list[T]:
     if not lst:
         return []
     if type(lst) is not list:
-        return [lst]
+        return [lst]  # ty: ignore[invalid-return-type]
     return lst
+
+
+@dataclass(kw_only=True)
+class ObjectFilters:
+    show_list: bool = False
+    is_alias: bool | None = None
+
+    def matches(self, obj: dict[str, Any]) -> bool:
+        return (obj.get("show.list", "true") or self.show_list) and (
+            self.is_alias is None or self.is_alias == bool(obj.get("permalink.alias"))
+        )
+
+
+@dataclass(kw_only=True)
+class ThesisFilters(ObjectFilters):
+    status: str | list[str] | None = None
+    supervisor: str | None = None
+    project: str | None = None
+    has_document: bool | None = None
+
+    def matches(self, obj: dict[str, Any]) -> bool:
+        return (
+            super().matches(obj)
+            and (not self.status or obj["thesis-status"] in wrap_list(self.status))
+            and (not self.supervisor or self.supervisor in obj["thesis-supervisor"])
+            and (not self.project or self.project in obj.get("projects", []))
+            and (
+                self.has_document is None
+                or self.has_document == (obj.get("thesis-document") is not None)
+            )
+        )
+
+
+@dataclass(kw_only=True)
+class ProjectFilters(ObjectFilters):
+    status: str | list[str] | None = None
+
+    def matches(self, obj: dict[str, Any]) -> bool:
+        return super().matches(obj) and (
+            not self.status or obj["project-status"] in wrap_list(self.status)
+        )
+
+
+@dataclass(kw_only=True)
+class NewsFilters(ObjectFilters):
+    related: str | list[str] | None = None
+    maxage: int | None = None
+
+    def matches(self, obj: dict[str, Any]) -> bool:
+        return (
+            super().matches(obj)
+            and (
+                not self.related
+                or set(wrap_list(self.related)).issubset(obj.get("related", []))
+            )
+            and (
+                not self.maxage
+                or (datetime.date.today() - obj["date"]).days
+                < obj.get("maxage", self.maxage)
+            )
+        )
+
+
+@dataclass(kw_only=True)
+class PublicationFilters(ObjectFilters):
+    project: str | dict[str, Any] | None = None
+    author: str | None = None
+    own: bool | None = None
+    bibtype: str | list[str] | None = None
+    entrysubtype: str | list[str] | None = None
+    award: bool | None = None
+    category: str | None = None
+    category_exclude: str | None = "doubleblind"
+    core: str | list[str] | None = None
+
+    def matches(self, obj: dict[str, Any]) -> bool:
+        bibtex = obj["bibtex"]
+        return (
+            super().matches(obj)
+            and (not self.project or self.project in obj["projects"])
+            and (self.own is None or self.own == bibtex.get("x-own", False))
+            and (
+                not self.bibtype
+                or bibtex["ENTRYTYPE"].lower() in wrap_list(self.bibtype)
+            )
+            and (
+                not self.entrysubtype
+                or bibtex.get("entrysubtype") in wrap_list(self.entrysubtype)
+            )
+            and (not self.award or bibtex.get("x-award"))
+            and (not self.category or self.filter_categories(obj, self.category))
+            and (
+                not self.category_exclude
+                or not self.filter_categories(obj, self.category_exclude)
+            )
+            and (
+                not self.core
+                or (
+                    bibtex.get("userc")
+                    and bibtex.get("userc").split(":")[1] in wrap_list(self.core)
+                )
+            )
+            and (
+                not self.author
+                or self.author
+                in (bibtex.get("authors", []) + bibtex.get("editors", []))
+            )
+        )
+
+    def filter_categories(self, obj: dict[str, Any], categories: str) -> bool:
+        obj_categories = obj["bibtex"].get("x-category", [])
+        union_cats = [c.strip() for c in categories.split("|")]
+
+        for u_cat in union_cats:
+            intersect_cats = [c.strip() for c in u_cat.split("+")]
+
+            categories_apply = True
+
+            for i_cat in intersect_cats:
+                if i_cat not in obj_categories:
+                    categories_apply = False
+                    break
+
+            if categories_apply:
+                return True
+
+        return False
+
+
+@dataclass(kw_only=True)
+class PersonFilters(ObjectFilters):
+    external: bool | None = None
+    job: str | None = None
+
+    def matches(self, obj: dict[str, Any]) -> bool:
+        return (
+            super().matches(obj)
+            and (self.external is None or obj.get("external", False) == self.external)
+            and (not self.job or obj.get("job") == self.job)
+        )
+
+
+@dataclass(kw_only=True)
+class EvaluationFilters(ObjectFilters):
+    lecture: str | None = None
+    maxage: int | None = None
+
+    def matches(self, obj: dict[str, Any]) -> bool:
+
+        def check_age(age: int, obj: dict[str, Any]) -> bool:
+            sem = obj["lecture"]["semester"]
+            year = int(f"20{sem[2:4]}")
+            date = datetime.date(year, (1 if sem[:2] == "ss" else 7), 1)
+            return (datetime.date.today() - date).days <= age
+
+        return (
+            super().matches(obj)
+            and (not self.lecture or self.lecture == obj["lecture"]["series"])
+            and (not self.maxage or check_age(self.maxage, obj))
+        )
+
+
+@dataclass(kw_only=True)
+class LectureFilters(ObjectFilters):
+    staff: str | None = None
+    semester: str | None = None
+    studygroup: str | list[str] | None = None
+    series: str | None = None
+
+    def matches(self, obj: dict[str, Any]) -> bool:
+        return (
+            super().matches(obj)
+            and (
+                not self.staff
+                or any(person["id"] == self.staff for person in obj["staff"])
+            )
+            and (not self.semester or obj.get("semester") == self.semester)
+            and (not self.series or obj.get("series") == self.series)
+            and (
+                not self.studygroup
+                or obj.get("studygroup") in wrap_list(self.studygroup)
+            )
+        )
+
+
+@dataclass(kw_only=True)
+class PostFilters(ObjectFilters):
+    pass
+
+
+@dataclass(kw_only=True)
+class ServiceFilters(ObjectFilters):
+    entrysubtype: str | list[str] | None = None
+
+    def matches(self, obj: dict[str, Any]) -> bool:
+        return super().matches(obj) and (
+            not self.entrysubtype or obj["entrysubtype"] in wrap_list(self.entrysubtype)
+        )
+
+
+@dataclass(kw_only=True)
+class EventFilters(ObjectFilters):
+    maxage: int | None = None
+    upcoming: bool | None = None
+
+    def matches(self, obj: dict[str, Any]) -> bool:
+        return (
+            super().matches(obj)
+            and (
+                self.upcoming is None
+                or (not self.upcoming and obj["date"] < datetime.date.today())
+                or (self.upcoming and obj["date"] >= datetime.date.today())
+            )
+            and (
+                not self.maxage
+                or (datetime.date.today() - obj["date"]).days
+                < obj.get("maxage", self.maxage)
+            )
+        )
 
 
 class ObjectStore:
@@ -428,150 +650,33 @@ class ObjectStore:
             ids.add(id)
         return ret
 
-    def object_list(
-        self,
-        type: str,
-        filter: str | None = None,
-        status: Any = None,
-        supervisor: Any = None,
-        project: Any = None,
-        author: Any = None,
-        own: Any = None,
-        bibtype: Any = None,
-        entrysubtype: Any = None,
-        award: Any = None,
-        category: Any = None,
-        category_exclude: Any = "doubleblind",
-        core: Any = None,
-        maxage: Any = None,
-        show_list: bool = False,
-        is_alias: bool | None = None,
-        lecture: Any = None,
-        staff: Any = None,
-        semester: Any = None,
-        studygroup: Any = None,
-        series: Any = None,
-        upcoming: bool | None = None,
-    ) -> list[dict[str, Any]]:
+    def object_list(self, object_type: str, **kwargs: Any) -> list[dict[str, Any]]:
+        filter_types: dict[str, type[ObjectFilters]] = {
+            "thesis": ThesisFilters,
+            "project": ProjectFilters,
+            "news": NewsFilters,
+            "publication": PublicationFilters,
+            "person": PersonFilters,
+            "evaluation": EvaluationFilters,
+            "lecture": LectureFilters,
+            "post": PostFilters,
+            "service": ServiceFilters,
+            "event": EventFilters,
+        }
+        filters = filter_types.get(object_type, ObjectFilters)(**kwargs)
         ret = []
         captured = set()
 
         for obj in self.objects.values():
             if (
-                self.isA(obj, type)
-                and (obj.get("show.list", "true") or show_list)
-                and (not filter or eval(filter)(obj))
-                and (is_alias is None or is_alias == bool(obj.get("permalink.alias")))
-                and (
-                    (
-                        type == "thesis"
-                        and (not status or obj["thesis-status"] in status)
-                        and (not supervisor or supervisor in obj["thesis-supervisor"])
-                        and (not project or project in obj.get("projects", []))
-                    )
-                    or (
-                        type == "project"
-                        and (not status or obj["project-status"] in status)
-                    )
-                    or (
-                        type == "news"
-                        and (
-                            not project
-                            or ("related" in obj and project in obj["related"])
-                        )
-                        and (
-                            not maxage
-                            or (datetime.date.today() - obj["date"]).days
-                            < obj.get("maxage", maxage)
-                        )
-                    )
-                    or (
-                        type == "publication"
-                        and (not project or project in obj["projects"])
-                        and (own is None or own == obj["bibtex"].get("x-own", False))
-                        and (
-                            not bibtype
-                            or obj["bibtex"]["ENTRYTYPE"].lower() in wrap_list(bibtype)
-                        )
-                        and (
-                            not entrysubtype
-                            or obj["bibtex"].get("entrysubtype")
-                            in wrap_list(entrysubtype)
-                        )
-                        and (not award or obj["bibtex"].get("x-award"))
-                        and (not category or self.filter_categories(obj, category))
-                        and (
-                            not category_exclude
-                            or not self.filter_categories(obj, category_exclude)
-                        )
-                        and (
-                            not core
-                            or (
-                                obj["bibtex"].get("userc")
-                                and obj["bibtex"].get("userc").split(":")[1]
-                                in wrap_list(core)
-                            )
-                        )
-                        and (
-                            not author
-                            or (
-                                author
-                                in (
-                                    obj["bibtex"].get("authors", [])
-                                    + obj["bibtex"].get("editors", [])
-                                )
-                            )
-                        )
-                    )
-                    or (type == "person")
-                    or (
-                        type == "evaluation"
-                        and (not lecture or lecture == obj["lecture"]["series"])
-                    )
-                    or (
-                        type == "lecture"
-                        and (not staff or [p for p in obj["staff"] if p["id"] == staff])
-                        and (
-                            not semester
-                            or ("semester" in obj and obj["semester"] == semester)
-                        )
-                        and (not series or "series" in obj and obj["series"] == series)
-                        and (
-                            not studygroup
-                            or (
-                                "studygroup" in obj
-                                and obj["studygroup"] in wrap_list(studygroup)
-                            )
-                        )
-                    )
-                    or (type == "post")
-                    or (
-                        type == "service"
-                        and (
-                            not entrysubtype
-                            or (obj["entrysubtype"] in wrap_list(entrysubtype))
-                        )
-                    )
-                    or (
-                        type == "event"
-                        and (
-                            upcoming is None
-                            or (not upcoming and obj["date"] < datetime.date.today())
-                            or (upcoming and obj["date"] >= datetime.date.today())
-                        )
-                        and (
-                            not maxage
-                            or (datetime.date.today() - obj["date"]).days
-                            < obj.get("maxage", maxage)
-                        )
-                    )
-                )
+                self.isA(obj, object_type)
+                and filters.matches(obj)
                 and id(obj) not in captured
             ):
                 ret.append(obj)
                 captured.add(id(obj))
-        for x in ret:
-            self.__reference(x)
+        for obj in ret:
+            self.__reference(obj)
         return self.sorted(ret)
 
     def sorted(self, elem: list[dict[str, Any]], **kwargs: Any) -> list[dict[str, Any]]:
@@ -620,42 +725,6 @@ class ObjectStore:
             return str(x)
 
         return sorted(elem, key=sort_key, **kwargs)
-
-    def filter_categories(self, obj: dict[str, Any], categories: str) -> bool:
-        obj_categories = obj["bibtex"].get("x-category", [])
-        union_cats = [c.strip() for c in categories.split("|")]
-
-        for u_cat in union_cats:
-            intersect_cats = [c.strip() for c in u_cat.split("+")]
-
-            categories_apply = True
-
-            for i_cat in intersect_cats:
-                if i_cat not in obj_categories:
-                    categories_apply = False
-                    break
-
-            if categories_apply:
-                return True
-
-        return False
-
-
-@staticmethod
-def filter_old_eval(obj: dict[str, Any]) -> bool:
-    if "evaluation" not in obj["type"]:
-        return False
-    sem = obj["lecture"]["semester"]
-    year = int(f"20{sem[2:4]}")
-    month = 6 if sem[0:2] == "ss" else 12
-    return datetime.date.today() < datetime.date(year + 3, month, 1)
-
-
-@staticmethod
-def filter_has_document(obj: dict[str, Any]) -> bool:
-    if "thesis" not in obj["type"]:
-        return False
-    return obj.get("thesis-document") is not None
 
 
 def resolve_load_csv(fragment: YAMLFragment, ctx: Constructor) -> Replace:

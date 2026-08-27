@@ -1,6 +1,6 @@
 object: &type_object
   id:
-    require: true
+    required: true
     type: string
   type:
     doc: "Every object can have one or more types. Therefore, this can be a string or an list"
@@ -148,10 +148,10 @@ thesis:
 person:
   <<: *type_object
   name:
-    reqired: true
+    required: true
   external:
     doc: "Set to true if non-LUH"
-    reqired: false
+    required: false
   name-prefix:
     doc: "A title prefix, like Dr."
     required: false
@@ -172,7 +172,7 @@ person:
 project:
   <<: *type_object
   title:
-    reqired: true
+    required: true
   short_title:
     recommended: true
   project-status:
@@ -189,7 +189,7 @@ bibtex: {}
 # The empty, allow anything type modkat
 modkat: {}
 
-permalinks: {}  
+permalinks: {}
 
 publication:
   <<: *type_object
@@ -327,7 +327,7 @@ service:
     required: true
     type: string
   year:
-    required: no 
+    required: no
 
 event:
   <<: *type_object
