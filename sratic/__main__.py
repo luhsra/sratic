@@ -15,7 +15,7 @@ import urllib.parse
 from collections.abc import Callable
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, NoReturn
+from typing import NoReturn
 from urllib.parse import quote_plus
 
 import markdown
@@ -25,7 +25,7 @@ __src_dir__ = Path(__file__).parent
 
 sys.path.append(str(__src_dir__.parent))
 import sratic.bibliography  # noqa: F401
-from sratic.metadata import Constructors, YAMLDataFactory, YAMLFragment
+from sratic.metadata import Constructor, Replace, YAMLDataFactory, YAMLFragment
 from sratic.objects import ObjectStore
 from sratic.remote import ObjectExporter
 from sratic.schedule_table import ScheduleExtension, schedule_table
@@ -57,9 +57,7 @@ class Generator:
 
         self.yaml_data_factory = YAMLDataFactory(None)
         # Register before loading data, which may contain !markdown tags.
-        Constructors.add(
-            "!markdown", Constructors.MARKDOWN, self.resolve_markdown_constructor
-        )
+        Constructor.add("!markdown", self.resolve_markdown_constructor)
         schema_fn = Path.cwd() / "data" / "schema.yml"
         if not schema_fn.exists():
             schema_fn = __src_dir__ / "data" / "schema.yml"
@@ -183,13 +181,15 @@ class Generator:
         return content
 
     def resolve_markdown_constructor(
-        self, fragment: YAMLFragment, parent: Any, key: int | str
-    ) -> None:
+        self,
+        fragment: YAMLFragment,
+        ctx: Constructor,
+    ) -> Replace:
         """This is used for the !markdown constructor, which is used to
         preprocess a string field as markdown.
         """
-        text = parent[key][1][0]
-        parent[key] = str(self.markdown(text))
+        assert type(ctx.value) is str
+        return Replace(self.markdown(ctx.value))
 
     def check_dependencies(self, page: YAMLFragment, target: Path) -> bool:
         """Check if the target file `target` has to be rebuild.

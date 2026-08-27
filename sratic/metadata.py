@@ -1,37 +1,56 @@
 # Metadata in SRAtic is stored as YAML. It can be contained directly
 # in .yml files, or as a header within a page.
 
-import glob
 import io
 import logging
 import sys
 from collections.abc import Callable, Iterator
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 
-class Constructors:
-    INCLUDE = 1
-    SPLICE = 2
-    LOAD_BIBTEX = 3
-    PATH = 4
-    MARKDOWN = 5
-    LOAD_CSV = 6
+@dataclass
+class Replace:
+    value: Any
+    again: bool = False
 
-    handlers: dict[int, Callable[["YAMLFragment", Any, int | str], Any]] = {}
+
+@dataclass
+class Splice:
+    value: list | dict
+    again: bool = False
+
+
+@dataclass
+class Constructor:
+    """Deferred constructor for YAML tags."""
+
+    tag: str
+    value: Any
+    """YAML node value"""
+    resolve: Callable[["YAMLFragment", "Constructor"], Replace | Splice] = field(
+        repr=False
+    )
+    """Handler for resolving the constructor, the result can either be replaced or spliced into the parent object"""
+    origin: Path | None = None
+    """Original path of the fragment"""
+
+    def __call__(self, fragment: "YAMLFragment") -> Replace | Splice:
+        logging.debug(f"Constructor: {self}")
+        return self.resolve(fragment, self)
 
     @staticmethod
     def add(
-        key: str,
-        tag: int,
-        fn: Callable[["YAMLFragment", Any, int | str], Any],
+        tag: str,
+        resolve: Callable[["YAMLFragment", "Constructor"], Replace | Splice],
     ) -> None:
-        if tag in Constructors.handlers:
-            return
-        yaml.add_constructor(key, lambda loader, node: (tag, [node.value]))
-        Constructors.handlers[tag] = fn
+        """Register a deferred constructor for a YAML tag."""
+        yaml.add_constructor(
+            tag, lambda loader, node: Constructor(tag, node.value, resolve)
+        )
 
 
 class YAMLFragment:
@@ -47,14 +66,15 @@ class YAMLFragment:
         return f"YAMLFragment('{self.path}')"
 
     def __include_filename(self, data: Any, fn: Path) -> None:
+        """Recursively include the filename in any constructor data."""
         if type(data) is list:
             for elem in data:
                 self.__include_filename(elem, fn)
         elif type(data) is dict:
             for elem in data:
                 self.__include_filename(data[elem], fn)
-        elif type(data) is tuple and data and data[0] in Constructors.handlers:
-            data[1].append(fn)
+        elif isinstance(data, Constructor):
+            data.origin = fn
 
     def objects(self) -> Iterator[dict[str, Any]]:
         """Iterator over all objects"""
@@ -79,7 +99,7 @@ class YAMLFragment:
 
         elif type(x) is dict:
             if "id" in x or "type" in x:
-                if not "id" in x:
+                if "id" not in x:
                     assert self.path is not None
                     x["id"] = f"{self.path}-{id(x)}"
                 yield prefix, x
@@ -99,14 +119,14 @@ class YAMLDataFactory:
 
         # The !include constructor does insert the whole referenced
         # document instead of the field
-        Constructors.add("!include", Constructors.INCLUDE, self.__resolve_include)
+        Constructor.add("!include", self.__resolve_include)
 
         # The !splice tag is similar to !include, but merges the
         # referenced document into the parent node.
-        Constructors.add("!splice", Constructors.SPLICE, self.__resolve_splice)
+        Constructor.add("!splice", self.__resolve_splice)
 
         # The !path constructor
-        Constructors.add("!path", Constructors.PATH, self.__resolve_path)
+        Constructor.add("!path", self.__resolve_path)
 
     def __load_fragment(self, filename: Path) -> YAMLFragment:
         """Load YAML Fragment, with caching. Fragments do not only originate
@@ -163,12 +183,11 @@ class YAMLDataFactory:
             if dir_file.exists():
                 if type(fragment.data) is list:
                     fragment.data.append(
-                        (Constructors.SPLICE, [str(dir_file), "./IGNORE.yml"])
+                        Constructor("!splice", dir_file, self.__resolve_splice)
                     )
                 elif type(fragment.data) is dict:
-                    fragment.data[object()] = (
-                        Constructors.SPLICE,
-                        [str(dir_file), "./ignore.yml"],
+                    fragment.data[object()] = Constructor(
+                        "!splice", dir_file, self.__resolve_splice
                     )
                 else:
                     sys.exit(
@@ -184,7 +203,7 @@ class YAMLDataFactory:
         get an newly created YAML Fragment."""
 
         ret = YAMLFragment(self.__config, filename, {})
-        ret.data = [(Constructors.INCLUDE, [filename, "./IGNORE.yml"])]
+        ret.data = [Constructor("!include", filename, self.__resolve_include)]
         again = True
         while again:
             ret, again = self.__resolve(ret, ret.data)
@@ -195,85 +214,65 @@ class YAMLDataFactory:
         return ret
 
     ### Resolve Constructors
-    def __resolve_splice(
-        self, fragment: YAMLFragment, parent: Any, key: int | str
-    ) -> bool:
-        fn, stmt_fn = parent[key][1]
-        if "*" in fn:
-            fns = [str(path) for path in glob.glob(str(Path(stmt_fn).parent / fn))]
+    def __resolve_splice(self, fragment: YAMLFragment, ctx: Constructor) -> Splice:
+        fn = ctx.origin.parent / ctx.value if ctx.origin else Path(ctx.value)
+        if "*" in fn.name:
+            fns = fn.parent.glob(fn.name)
         else:
             fns = [fn]
 
-        splice_data: Any = None
+        splice_data: dict | list | None = None
         for fn in fns:
-            fn = Path(stmt_fn).parent / fn
             other = self.__load_fragment(fn)
             fragment.sources.update(other.sources)
-            assert type(other.data) == type(parent), (
-                f"Splicing for {fn} failed. Type mismatch ({type(other.data)} != {type(parent)})"
-            )
             if splice_data is None:
                 splice_data = other.data.copy()
             elif type(other.data) is dict:
                 assert type(splice_data) is dict, (
-                    f"Splicing {fn} failed. Type mismatch ({type(splice_data)} != {type(other.data)})"
+                    f"Splicing {fn}: Type mismatch ({type(splice_data)} != {type(other.data)})"
                 )
                 splice_data.update(other.data)
-            else:
+            elif type(other.data) is list:
                 assert type(splice_data) is list, (
-                    f"Splicing {fn} failed. Type mismatch ({type(splice_data)} != {type(other.data)})"
+                    f"Splicing {fn}: Type mismatch ({type(splice_data)} != {type(other.data)})"
                 )
                 splice_data += other.data
+            else:
+                assert False, f"Splicing {fn}: Unexpected type: {type(other.data)}"
 
-        if type(parent) is list:
-            assert isinstance(key, int)
-            assert isinstance(splice_data, list)
-            parent[key : key + 1] = splice_data
-        else:
-            del parent[key]
-            assert isinstance(splice_data, dict)
-            for k, v in splice_data.items():
-                parent[k] = v
-        return True
+        assert splice_data is not None, f"Splicing {fn}: No data"
+        return Splice(splice_data, again=True)
 
-    def __resolve_include(
-        self, fragment: YAMLFragment, parent: Any, key: int | str
-    ) -> bool:
-        fn, stmt_fn = parent[key][1]
-        fn = Path(stmt_fn).parent / fn
+    def __resolve_include(self, fragment: YAMLFragment, ctx: Constructor) -> Replace:
+        fn = ctx.origin.parent / ctx.value if ctx.origin else Path(ctx.value)
         other = self.__load_fragment(fn)
-        parent[key] = other.data
         fragment.sources.update(other.sources)
-        return True
+        return Replace(other.data, again=True)
 
-    def __resolve_path(
-        self, fragment: YAMLFragment, parent: Any, key: int | str
-    ) -> None:
-        fn, stmt_fn = parent[key][1]
-        if fn[0] == "/":
-            parent[key] = fn
-            return
-        path = (Path(stmt_fn).parent / fn).resolve()
-        fn = path.relative_to(Path.cwd()).as_posix()
-        parent[key] = "/" + fn
+    def __resolve_path(self, fragment: YAMLFragment, ctx: Constructor) -> Replace:
+        if Path(ctx.value).is_absolute():
+            return Replace(ctx.value)
+        assert ctx.origin, "Path not absolute and no origin available"
+        path = (Path(ctx.origin).parent / ctx.value).resolve()
+        return Replace("/" + path.relative_to(Path.cwd()).as_posix())
 
     def __resolve(self, fragment: YAMLFragment, x: Any) -> tuple[YAMLFragment, bool]:
         """One depth-first search, to resolve constructors. Returns true, if
         this process has to be repeated.
 
         """
-        handlers = Constructors.handlers
         again = False
         if type(x) is list:
             for idx, value in enumerate(x):
-                if (
-                    type(value) is tuple
-                    and value
-                    and isinstance(value[0], int)
-                    and value[0] in handlers
-                    and handlers[value[0]](fragment, x, idx)
-                ):
-                    again = True
+                if isinstance(value, Constructor):
+                    res = value(fragment)
+                    if isinstance(res, Replace):
+                        x[idx] = res.value
+                    elif isinstance(res, Splice):
+                        assert type(res.value) is list
+                        x[idx : idx + 1] = res.value
+                    if res.again:
+                        again = True
 
                 # Recursion
                 if type(value) in (list, dict):
@@ -281,14 +280,16 @@ class YAMLDataFactory:
                     again = change or again
         elif type(x) is dict:
             for key, value in list(x.items()):
-                if (
-                    type(value) is tuple
-                    and value
-                    and isinstance(value[0], int)
-                    and value[0] in handlers
-                    and handlers[value[0]](fragment, x, key)
-                ):
-                    again = True
+                if isinstance(value, Constructor):
+                    res = value(fragment)
+                    if isinstance(res, Replace):
+                        x[key] = res.value
+                    elif isinstance(res, Splice):
+                        assert type(res.value) is dict
+                        x.update(res.value)
+                        del x[key]
+                    if res.again:
+                        again = True
 
                 # Recursion
                 if type(value) in (list, dict):

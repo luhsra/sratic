@@ -9,28 +9,29 @@ from urllib import request
 
 import yaml
 
-from .metadata import Constructors, YAMLFragment
+from .metadata import Constructor, Replace, YAMLFragment
 
 BIB2JSON_VERSION = (0, 1, 2)
 
 
-def resolve_load_bibtex(fragment: YAMLFragment, parent: Any, key: int | str) -> None:
-    fn, stmt_fn = parent[key][1]
-    if type(fn) is list:
+def resolve_load_bibtex(fragment: YAMLFragment, ctx: Constructor) -> Replace:
+    logging.debug(f"Resolve bibtex {ctx.value}")
+    if type(ctx.value) is list:
         # Serializing and reloading is the only possibility to
         # get a real dictionary from that YAML internal data structures.
         # fn[1] is the extra data
-        modify_data = yaml.load(yaml.serialize(fn[1]), Loader=yaml.Loader)
-        fn = fn[0].value
+        modify_data = yaml.load(yaml.serialize(ctx.value[1]), Loader=yaml.Loader)
+        fn = ctx.value[0].value
     else:
         modify_data = {}
+        fn = ctx.value
     assert type(fn) is str, "filename for !bibtex should be a string"
-    fn = Path(stmt_fn).parent / fn
+    fn = Path(ctx.origin).parent / fn if ctx.origin else Path(fn)
     fragment.sources.add(fn)
-    parent[key] = load_bibtex(fn, modify_data=modify_data)
+    return Replace(load_bibtex(fn, modify_data=modify_data))
 
 
-Constructors.add("!bibtex", Constructors.LOAD_BIBTEX, resolve_load_bibtex)
+Constructor.add("!bibtex", resolve_load_bibtex)
 
 
 def join_name(person: dict[str, str]) -> str:

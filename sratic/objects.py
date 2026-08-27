@@ -1,21 +1,21 @@
 import datetime
 import logging
 import re
-import uuid
+import uuid as libuuid
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from .metadata import Constructors, YAMLFragment
+from .metadata import Constructor, Replace, YAMLFragment
 from .schema import check_schema, schema_for_obj
 
 
 def wrap_list(lst: Any) -> list[Any]:
     if not lst:
         return []
-    if type(lst) != list:
+    if type(lst) is not list:
         return [lst]
     return lst
 
@@ -163,7 +163,7 @@ class ObjectStore:
                 # Update some fields from the bibtex entry
                 page["bibtex"] = obj
                 page["x-exported"] = obj.get("x-exported", True)
-                if not "title" in page:
+                if "title" not in page:
                     page["title"] = obj["title"]
 
                 # Extract list of projects from bibtex file
@@ -191,7 +191,7 @@ class ObjectStore:
         # Step 4: Adjust types and run constructors
         for obj in objects.values():
             # Wrap type field
-            if type(obj["type"]) == str:
+            if type(obj["type"]) is str:
                 obj["type"] = [obj["type"]]
 
             for T in obj["type"]:
@@ -222,13 +222,13 @@ class ObjectStore:
                     f"Parent {pp} is unknown (in {obj['id']})"
                 )
                 # Add the page ID to the children, not the actual data
-                if not "children" in objects[pp]:
+                if "children" not in objects[pp]:
                     objects[pp]["children"] = []
-                if not p in objects[pp]["children"]:
+                if p not in objects[pp]["children"]:
                     objects[pp]["children"].append(p)
 
                 # Add dependencies
-                if not "depends" in objects[pp]:
+                if "depends" not in objects[pp]:
                     objects[pp]["depends"] = []
                 if type(objects[pp]["depends"]) is str:
                     objects[pp]["depends"] = [objects[pp]["depends"]]
@@ -249,9 +249,9 @@ class ObjectStore:
             if "parent" in obj and obj.get("submenu.list", False):
                 p = obj["id"]
                 pp = obj["parent"]
-                if not "submenu" in objects[pp]:
+                if "submenu" not in objects[pp]:
                     objects[pp]["submenu"] = []
-                if not p in objects[pp]["submenu"]:
+                if p not in objects[pp]["submenu"]:
                     objects[pp]["submenu"].append(p)
 
             # Wrap the dependencies, when we're at it
@@ -391,9 +391,9 @@ class ObjectStore:
         return now.isoformat()
 
     @staticmethod
-    def uuid(text: str) -> uuid.UUID:
+    def uuid(text: str) -> libuuid.UUID:
         """A Jinja Filter that creates an UUID"""
-        return uuid.uuid5(uuid.NAMESPACE_URL, text)
+        return libuuid.uuid5(libuuid.NAMESPACE_URL, text)
 
     def deref(self, elem: Any, fail: bool = True) -> dict[str, Any] | None:
         """Dereferences a object, if it should be necessary"""
@@ -488,7 +488,7 @@ class ObjectStore:
                     or (
                         type == "publication"
                         and (not project or project in obj["projects"])
-                        and (own == None or own == obj["bibtex"].get("x-own", False))
+                        and (own is None or own == obj["bibtex"].get("x-own", False))
                         and (
                             not bibtype
                             or obj["bibtex"]["ENTRYTYPE"].lower() in wrap_list(bibtype)
@@ -556,14 +556,8 @@ class ObjectStore:
                         type == "event"
                         and (
                             upcoming is None
-                            or (
-                                upcoming == False
-                                and obj["date"] < datetime.date.today()
-                            )
-                            or (
-                                upcoming == True
-                                and obj["date"] >= datetime.date.today()
-                            )
+                            or (not upcoming and obj["date"] < datetime.date.today())
+                            or (upcoming and obj["date"] >= datetime.date.today())
                         )
                         and (
                             not maxage
@@ -637,7 +631,7 @@ class ObjectStore:
             categories_apply = True
 
             for i_cat in intersect_cats:
-                if not i_cat in obj_categories:
+                if i_cat not in obj_categories:
                     categories_apply = False
                     break
 
@@ -664,24 +658,24 @@ def filter_has_document(obj: dict[str, Any]) -> bool:
     return obj.get("thesis-document") is not None
 
 
-def resolve_load_csv(fragment: YAMLFragment, parent: Any, key: int | str) -> None:
+def resolve_load_csv(fragment: YAMLFragment, ctx: Constructor) -> Replace:
     import pandas as pd
 
-    fn, stmt_fn = parent[key][1]
-    if type(fn) is list:
+    if type(ctx.value) is list:
         # Serializing and reloading is the only possibility to
         # get a real dictionary from that YAML internal data structrues.
         # fn[1] is the extra data
-        kwargs = yaml.load(yaml.serialize(fn[1]), Loader=yaml.Loader)
-        fn = fn[0].value
+        kwargs = yaml.load(yaml.serialize(ctx.value[1]), Loader=yaml.Loader)
+        fn = ctx.value[0].value
     else:
         kwargs = {}
+        fn = ctx.value
     assert type(fn) is str, "filename for !csv should be a string"
-    fn = Path(stmt_fn).parent / fn
+    fn = Path(ctx.origin).parent / fn if ctx.origin else Path(fn)
     fragment.sources.add(fn)
 
     table = pd.read_csv(fn, **kwargs)
-    parent[key] = [dict(row) for _, row in table.iterrows()]
+    return Replace([dict(row) for _, row in table.iterrows()])
 
 
-Constructors.add("!csv", Constructors.LOAD_CSV, resolve_load_csv)
+Constructor.add("!csv", resolve_load_csv)
