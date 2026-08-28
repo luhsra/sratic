@@ -48,10 +48,10 @@
 {% endmacro %}
 
 
-{% macro makenews(project) %}
+{% macro makenews(project_id) %}
 
-<h2>{{nav.link(project)}} News And Trivia</h2>
-{% for item in object_list('news', maxage=32768, related=project.id) | sorted | reverse %}
+<h2>{{nav.link(project_id)}} News And Trivia</h2>
+{% for item in object_list('news', maxage=32768, related=project_id) | sorted | reverse %}
 {{ show.show(item) }}
 {% endfor %}
 
