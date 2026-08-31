@@ -404,7 +404,7 @@ def read_git(pages: list[YAMLFragment]) -> None:
             time, author = git_info.decode("utf-8").split(" ", maxsplit=1)
             author = author.strip()
             time = datetime.datetime.fromtimestamp(
-                int(time.strip()), tz=datetime.timezone.utc
+                int(time.strip()), tz=datetime.UTC
             ).astimezone()
             page.data["last-author"] = author
             page.data["last-modification"] = time

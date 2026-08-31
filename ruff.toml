@@ -1,3 +1,5 @@
+target-version = "py312"
+
 [lint]
 ignore = ["LOG015"]
 

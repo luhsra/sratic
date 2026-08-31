@@ -68,7 +68,7 @@ class NewsFilters(ObjectFilters):
     maxage: int | None = None
 
     def matches(self, obj: dict[str, Any]) -> bool:
-        today = datetime.datetime.now(datetime.timezone.utc).astimezone().date()
+        today = datetime.datetime.now(datetime.UTC).astimezone().date()
         return (
             super().matches(obj)
             and (
@@ -172,7 +172,7 @@ class EvaluationFilters(ObjectFilters):
             sem = obj["lecture"]["semester"]
             year = int(f"20{sem[2:4]}")
             date = datetime.date(year, (1 if sem[:2] == "ss" else 7), 1)
-            today = datetime.datetime.now(datetime.timezone.utc).astimezone().date()
+            today = datetime.datetime.now(datetime.UTC).astimezone().date()
             return (today - date).days <= age
 
         return (
@@ -226,7 +226,7 @@ class EventFilters(ObjectFilters):
     upcoming: bool | None = None
 
     def matches(self, obj: dict[str, Any]) -> bool:
-        today = datetime.datetime.now(datetime.timezone.utc).astimezone().date()
+        today = datetime.datetime.now(datetime.UTC).astimezone().date()
         return (
             super().matches(obj)
             and (
@@ -608,7 +608,7 @@ class ObjectStore:
 
         Note, this works only with Python 3.3+.
         """
-        now = datetime.datetime.now(datetime.timezone.utc).astimezone()
+        now = datetime.datetime.now(datetime.UTC).astimezone()
         return now.isoformat()
 
     @staticmethod

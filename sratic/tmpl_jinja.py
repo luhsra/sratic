@@ -13,10 +13,9 @@ from jinja2.parser import Parser
 
 
 class YamlExtension(Extension):
-    # a set of names that trigger the extension.
-    tags = {"yaml", "box"}
-
     def __init__(self, environment: Environment) -> None:
+        # a set of names that trigger the extension.
+        self.tags = {"yaml", "box"}
         super().__init__(environment)
         self.environment.filters.update(
             {
