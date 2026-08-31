@@ -83,9 +83,11 @@ class YAMLFragment:
             yield k
 
     def __objects(
-        self, x: Any, visited: set[int], prefix: list[Any] = []
+        self, x: Any, visited: set[int], prefix: list[Any] | None = None
     ) -> Iterator[tuple[list[Any], dict[str, Any]]]:
         """A depth-first search through to reveal all objects in the object space."""
+        if prefix is None:
+            prefix = []
         if id(x) in visited:
             return
         visited.add(id(x))
@@ -148,9 +150,9 @@ class YAMLDataFactory:
                         data = list(yaml.load_all(stream, Loader=yaml.Loader))
                     else:
                         data = yaml.load(stream, Loader=yaml.Loader)
-                except Exception as x:
+                except Exception:
                     logging.error("Error in %s", filename)
-                    raise x
+                    raise
 
             fragment = YAMLFragment(self.__config, filename, data)
         else:
@@ -167,9 +169,9 @@ class YAMLDataFactory:
 
                     try:
                         data = yaml.load(io.StringIO("".join(text)), Loader=yaml.Loader)
-                    except Exception as x:
+                    except Exception:
                         logging.error("Error in %s", filename)
-                        raise x
+                        raise
 
                     fragment = YAMLFragment(self.__config, filename, data)
                 else:

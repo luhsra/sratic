@@ -5,17 +5,15 @@ import uuid as libuuid
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any
 
 import yaml
 
 from .metadata import Constructor, Replace, YAMLFragment
 from .schema import check_schema, schema_for_obj
 
-T = TypeVar("T")
 
-
-def wrap_list(lst: T | list[T]) -> list[T]:
+def wrap_list[T](lst: T | list[T]) -> list[T]:
     if not lst:
         return []
     if type(lst) is not list:
@@ -70,6 +68,7 @@ class NewsFilters(ObjectFilters):
     maxage: int | None = None
 
     def matches(self, obj: dict[str, Any]) -> bool:
+        today = datetime.datetime.now(datetime.timezone.utc).astimezone().date()
         return (
             super().matches(obj)
             and (
@@ -78,8 +77,7 @@ class NewsFilters(ObjectFilters):
             )
             and (
                 not self.maxage
-                or (datetime.date.today() - obj["date"]).days
-                < obj.get("maxage", self.maxage)
+                or (today - obj["date"]).days < obj.get("maxage", self.maxage)
             )
         )
 
@@ -174,7 +172,8 @@ class EvaluationFilters(ObjectFilters):
             sem = obj["lecture"]["semester"]
             year = int(f"20{sem[2:4]}")
             date = datetime.date(year, (1 if sem[:2] == "ss" else 7), 1)
-            return (datetime.date.today() - date).days <= age
+            today = datetime.datetime.now(datetime.timezone.utc).astimezone().date()
+            return (today - date).days <= age
 
         return (
             super().matches(obj)
@@ -227,17 +226,17 @@ class EventFilters(ObjectFilters):
     upcoming: bool | None = None
 
     def matches(self, obj: dict[str, Any]) -> bool:
+        today = datetime.datetime.now(datetime.timezone.utc).astimezone().date()
         return (
             super().matches(obj)
             and (
                 self.upcoming is None
-                or (not self.upcoming and obj["date"] < datetime.date.today())
-                or (self.upcoming and obj["date"] >= datetime.date.today())
+                or (not self.upcoming and obj["date"] < today)
+                or (self.upcoming and obj["date"] >= today)
             )
             and (
                 not self.maxage
-                or (datetime.date.today() - obj["date"]).days
-                < obj.get("maxage", self.maxage)
+                or (today - obj["date"]).days < obj.get("maxage", self.maxage)
             )
         )
 

@@ -34,12 +34,12 @@ def resolve_load_bibtex(fragment: YAMLFragment, ctx: Constructor) -> Replace:
 Constructor.add("!bibtex", resolve_load_bibtex)
 
 
-def join_name(person: dict[str, str]) -> str:
-    name = person["last_name"]
-    fn = person["first_name"]
-    if fn:
-        name = fn + " " + name
-    return name
+def fill_name(person: dict[str, str]) -> str:
+    last = person["last_name"]
+    first = person["first_name"]
+    if first:
+        return f"{first} {last}"
+    return last
 
 
 def censor_bibtex_entry(entry: str) -> str:
@@ -83,10 +83,10 @@ def load_bibtex(
                 cur["id"] = "bib:" + value
             elif key == "authors":
                 if value:
-                    cur["authors"] = [join_name(x) for x in value]
+                    cur["authors"] = [fill_name(x) for x in value]
             elif key == "editors":
                 if value:
-                    cur["editors"] = [join_name(x) for x in value]
+                    cur["editors"] = [fill_name(x) for x in value]
             elif key == "type" and entry["entry_type"] == "thesis":
                 cur["thesistype"] = value
             elif key == "bibtex":
@@ -113,7 +113,7 @@ def get_bib2json_path() -> Path | str:
             return (major, minor) == BIB2JSON_VERSION[
                 0:2
             ] and patch >= BIB2JSON_VERSION[2]
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             return False
 
     # preinstalled bib2json
@@ -137,7 +137,7 @@ def get_bib2json_path() -> Path | str:
 
     try:
         download_bib2json(asset_name, exe_path)
-    except Exception as e:
+    except OSError as e:
         logging.error("Download of bib2json failed: %s", e)
         sys.exit(1)
     return exe_path

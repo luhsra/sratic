@@ -38,7 +38,7 @@ class SchedulePreprocessor(Preprocessor):
             indent = match.group("indent")
             code = match.group("code")
             lang = match.group("lang") or ""
-            attrs = match.group("attrs") or ""
+            _attrs = match.group("attrs") or ""
             # Append text before this block
             new_text += text[pos:start]
 
@@ -77,7 +77,7 @@ def table_from_csv(code: str) -> str:
     body = ""
     for row in rows[1:]:
         wdate, cells = row[0].strip(), row[1:]
-        pdate = datetime.strptime(wdate, "%d.%m.%y").date()
+        pdate = datetime.strptime(wdate, "%d.%m.%y").date()  # noqa: DTZ007
         kw = pdate.isocalendar().week
         body += f'<tr><td><small class="text-muted">{kw}: </small>{wdate}</td>'
 

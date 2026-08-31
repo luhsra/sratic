@@ -390,30 +390,28 @@ def read_git(pages: list[YAMLFragment]) -> None:
     pages -- a list of pages that are checked
     """
     try:
-        # convert this to the following once python 3.5 is common used
-        # subprocess.run(['git', 'rev-parse', '--show-toplevel'], check=True)
         subprocess.check_output(["git", "rev-parse", "--show-toplevel"])
-    except:
+    except (OSError, subprocess.CalledProcessError):
         logging.warning("Git toplevel directory not found. Disabling git support.")
         return
 
     for page in pages:
         assert page.path is not None
-        # convert this to the following once python 3.5 is common used
-        # subprocess.run(..., check=True, stdout=PIPE).stdout
         git_info = subprocess.check_output(
             ["git", "log", "-1", "--format=%at %an", "--", page.path]
         )
         if git_info:
             time, author = git_info.decode("utf-8").split(" ", maxsplit=1)
             author = author.strip()
-            time = datetime.datetime.fromtimestamp(int(time.strip()))
+            time = datetime.datetime.fromtimestamp(
+                int(time.strip()), tz=datetime.timezone.utc
+            ).astimezone()
             page.data["last-author"] = author
             page.data["last-modification"] = time
         else:
             # Dummy value for new pages
             page.data["last-author"] = ""
-            page.data["last-modification"] = datetime.datetime.now()
+            page.data["last-modification"] = datetime.datetime.now().astimezone()
 
 
 def main() -> NoReturn:
@@ -499,7 +497,7 @@ def main() -> NoReturn:
     pages: list[YAMLFragment] = []
     assets: list[str] = []
     env_globals: dict = gen.env.globals
-    for root, dirs, files in os.walk("."):
+    for root, _, files in Path(".").walk():
         for filename in files:
             if filename.startswith(".#") or filename.endswith(".swp"):
                 continue
@@ -611,7 +609,7 @@ def main() -> NoReturn:
     return_code = 0
     while True:
         try:
-            (pid, status) = os.wait()
+            (_, status) = os.wait()
             if status != 0:
                 return_code = 1
         except ChildProcessError:
