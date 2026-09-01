@@ -2,7 +2,6 @@
 
 import argparse
 import datetime
-import glob
 import logging
 import os
 import re
@@ -31,28 +30,27 @@ from sratic.remote import ObjectExporter
 from sratic.schedule_table import ScheduleExtension, schedule_table
 from sratic.tmpl_jinja import SRAticEnvironment
 
+# fmt: off
+ASSET_SUFFIXES = {
+    ".jpg", ".jpeg", ".png", ".pdf", ".svg", ".otf", ".gif", ".webp", ".ico",
+    ".webm", ".mp4", ".mkv", ".ogv", ".avi", ".mpg",
+    ".html", ".xml", ".css", ".js",  ".ttf", ".woff", ".woff2", ".eot",  ".xls", ".xlsx",
+}
+# fmt: on
+
 
 class Generator:
-    # pylint: disable=too-many-instance-attributes
-    # Eleven is reasonable in this case.
     def __init__(
         self,
-        source_directory: str,
-        template_paths: list[str] | None = None,
-        destination_directory: str = "../www",
+        source_directory: Path,
+        template_paths: list[Path] | None = None,
+        destination_directory: Path = Path("../www"),
         options: argparse.Namespace | None = None,
     ) -> None:
-        self.destination_directory: str = destination_directory
-        self.source_directory: str = source_directory
-        self.template_paths: list[str] = (
-            template_paths if template_paths is not None else []
-        )
-        org_cwd = os.getcwd()
-        try:
-            os.chdir(self.source_directory)
-            self.template_paths += glob.glob("*/__templates", recursive=True)
-        finally:
-            os.chdir(org_cwd)
+        self.destination_directory = Path(destination_directory)
+        self.source_directory = source_directory
+        self.template_paths = template_paths or []
+        self.template_paths.extend(self.source_directory.glob("*/__templates"))
         self.options = options
 
         self.yaml_data_factory = YAMLDataFactory(None)
@@ -65,15 +63,18 @@ class Generator:
         self.data_dir = self.yaml_data_factory.load_file(Path("data/root.yml"))
 
         # Imported modules
-        fns = set(
-            filter(None, [getattr(x, "__file__", None) for x in sys.modules.values()])
-        )
-        self.sources = fns
+        module_files = {
+            Path(str(getattr(x, "__file__", None)))
+            for x in sys.modules.values()
+            if getattr(x, "__file__", None)
+        }
+
+        self.sources: set[Path] = module_files
         for directory in self.template_paths:
-            self.sources.update(glob.glob(directory + "/*"))
+            self.sources.update(directory.glob("*"))
 
         # Create Jinja2 Environment
-        self.env = SRAticEnvironment([Path(p) for p in self.template_paths])
+        self.env = SRAticEnvironment(self.template_paths)
         self.env.filters["link"] = self.__link
         self.env.filters["link_absolute"] = self.__link_absolute
         self.env.filters["markdown"] = self.markdown
@@ -205,7 +206,7 @@ class Generator:
         sources = self.sources | page.sources
         if deps_fn.exists():
             with deps_fn.open() as fd:
-                sources.update(fd.read().split("\0"))
+                sources.update(Path(f) for f in fd.read().split("\0"))
         if self.data_dir.path in sources:
             sources.update(self.data_dir.sources)
         for fn in sources:
@@ -257,21 +258,21 @@ class Generator:
         return content, referenced_objects
 
     def output_jinja(
-        self, page: YAMLFragment, formatted: str, page_template: str, target: str
+        self, page: YAMLFragment, formatted: str, page_template: str, target: Path
     ) -> None:
         # Create Directory
-        Path(target).parent.mkdir(parents=True, exist_ok=True)
-        with Path(target).open("w+") as out:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("w+") as out:
             tmpl = self.env.get_template(page_template)
             txt = tmpl.render(page=self.env.globals["page"], body=formatted)
             out.write(txt)
 
     def output_raw(
-        self, page: YAMLFragment, formatted: str, page_template: str, target: str
+        self, page: YAMLFragment, formatted: str, page_template: str, target: Path
     ) -> None:
         # Create Directory
-        Path(target).parent.mkdir(parents=True, exist_ok=True)
-        with Path(target).open("w+") as out:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("w+") as out:
             out.write(formatted)
 
     def do_page(self, page: YAMLFragment) -> None:
@@ -291,14 +292,8 @@ class Generator:
         # Destination path in the filesystem
         dest_directory = self.destination_directory / page.path.parent
 
-        # Destination URL (relative to site.baseurl)
-        url_directory = Path("/") / page.path.parent
-
-        # Stem of the destination file
-        dest_stem = page.path.stem
-
         if "relative_root" not in page.data:
-            page.data["relative_root"] = os.path.relpath("/", url_directory)
+            page.data["relative_root"] = os.path.relpath(".", page.path.parent)
 
         # Stores the formatted page body
         formatted = None
@@ -308,26 +303,26 @@ class Generator:
             "formatter.output_templates", ["page.jinja"]
         ):
             # Create the output filename
-            X = page_template.split(".")
-            if len(X) == 2:
-                _, output_mode = X
-                dest_ext = "html"
-            else:
-                _, dest_ext, output_mode = X
+            match page_template.split("."):
+                case [_, d, o]:
+                    dest_ext = d
+                    output_mode = o
+                case [_, o]:
+                    dest_ext = "html"
+                    output_mode = o
 
-            if "formatter.target" in page.data:
-                dest_filename = page.data["formatter.target"]
-            else:
-                dest_filename = f"{dest_stem}.{dest_ext}"
-
+            dest_filename = page.data.get(
+                "formatter.target", f"{page.path.stem}.{dest_ext}"
+            )
             dest_path = dest_directory / dest_filename
-            dest_url = url_directory / dest_filename
 
-            similar = set(glob.glob(f"{dest_directory}*{dest_ext}")) - {dest_path}
+            similar = set(
+                dest_directory.parent.glob(f"{dest_directory.name}*{dest_ext}")
+            ) - {dest_path}
             if similar:
                 logging.warning(
                     "There are other files present in the directory with a similar name: %s",
-                    ", ".join(similar),
+                    ", ".join(str(s) for s in similar),
                 )
 
             up_to_date = self.check_dependencies(page, dest_path)
@@ -336,7 +331,7 @@ class Generator:
                 logging.debug("Up to date, skipping: %s", dest_path)
                 continue
 
-            logging.info("Generating %s", dest_url)
+            logging.info("Generating %s", page.path.parent / dest_filename)
             # Do not change anything, if we should run dry
             if self.options.dry:
                 continue
@@ -373,8 +368,8 @@ class Generator:
         logging.debug("Permalink %s -> [id:%s]", perma_file, page.data["id"])
         with perma_file.open("w") as perma:
             perma.write(
-                f'<!DOCTYPE html><html lang="en"><head><meta '
-                f'http-equiv="refresh" content="0;url='
+                '<!DOCTYPE html><html lang="en"><head><meta '
+                'http-equiv="refresh" content="0;url='
                 f'{self.__link_absolute(urllib.parse.quote(page.data["href"]))}"></head></html>'
             )
 
@@ -403,9 +398,7 @@ def read_git(pages: list[YAMLFragment]) -> None:
         if git_info:
             time, author = git_info.decode("utf-8").split(" ", maxsplit=1)
             author = author.strip()
-            time = datetime.datetime.fromtimestamp(
-                int(time.strip()), tz=datetime.UTC
-            ).astimezone()
+            time = datetime.datetime.fromtimestamp(int(time.strip()), tz=datetime.UTC)
             page.data["last-author"] = author
             page.data["last-modification"] = time
         else:
@@ -417,7 +410,12 @@ def read_git(pages: list[YAMLFragment]) -> None:
 def main() -> NoReturn:
     parser = argparse.ArgumentParser(add_help=True, description="Website builder.")
     parser.add_argument(
-        "-d", "--destination", help="destination directory", metavar="DIR", default=None
+        "-d",
+        "--destination",
+        help="destination directory",
+        metavar="DIR",
+        default=None,
+        type=Path,
     )
     parser.add_argument(
         "-b",
@@ -432,6 +430,7 @@ def main() -> NoReturn:
         help="path to templates",
         metavar="DIR",
         action="append",
+        type=Path,
         default=[],
     )
     parser.add_argument(
@@ -470,8 +469,8 @@ def main() -> NoReturn:
     logging.getLogger("MARKDOWN").setLevel(logging.WARNING)
 
     gen = Generator(
-        source_directory=os.path.abspath(os.curdir),
-        destination_directory=args.destination or "../www",
+        source_directory=Path.cwd(),
+        destination_directory=Path(args.destination or "../www"),
         template_paths=args.templates,
         options=args,
     )
@@ -497,7 +496,7 @@ def main() -> NoReturn:
     pages: list[YAMLFragment] = []
     assets: list[str] = []
     env_globals: dict = gen.env.globals
-    for root, _, files in Path(".").walk():
+    for root, _, files in os.walk("."):
         for filename in files:
             if filename.startswith(".#") or filename.endswith(".swp"):
                 continue
@@ -529,38 +528,7 @@ def main() -> NoReturn:
                     if name not in page.data:
                         page.data[name] = deepcopy(value)
                 pages.append(page)
-            elif (
-                ext
-                in asset_suffixes
-                | {
-                    ".jpg",
-                    ".jpeg",
-                    ".png",
-                    ".pdf",
-                    ".svg",
-                    ".otf",
-                    ".gif",
-                    ".webp",
-                    ".xml",
-                    ".css",
-                    ".js",
-                    ".ico",
-                    ".ttf",
-                    ".woff",
-                    ".webm",
-                    ".mp4",
-                    ".mkv",
-                    ".ogv",
-                    ".avi",
-                    ".mpg",
-                    ".woff2",
-                    ".eot",
-                    ".html",
-                    ".xls",
-                    ".xlsx",
-                }
-                or "htaccess" in fn.name
-            ):
+            elif ext in asset_suffixes | ASSET_SUFFIXES or "htaccess" in fn.name:
                 assets.append(unicodedata.normalize("NFC", "/" + fn.as_posix()))
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 if not dst.exists() or dst.stat().st_mtime < fn.stat().st_mtime:

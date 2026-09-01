@@ -396,12 +396,11 @@ class ObjectStore:
                         return False
                     return True
 
-                page["projects"] = list(
-                    filter(
-                        in_prjs,
-                        [x.strip() for x in obj.get("x-projects", "").split(",")],
-                    )
-                )
+                page["projects"] = [
+                    x.strip()
+                    for x in obj.get("x-projects", "").split(",")
+                    if in_prjs(x.strip())
+                ]
 
         for k, transform in data_dir.data.get("bibliography", {}).items():
             if not k.startswith("transform-"):

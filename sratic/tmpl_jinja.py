@@ -1,7 +1,6 @@
 import io
 import logging
 import operator
-import os
 import re
 from pathlib import Path
 from typing import Any
@@ -65,7 +64,7 @@ class YamlExtension(Extension):
 
 
 class SRAticEnvironment(Environment):
-    def __init__(self, template_paths: list[os.PathLike[str]]) -> None:
+    def __init__(self, template_paths: list[Path]) -> None:
         Environment.__init__(
             self,
             trim_blocks=True,
