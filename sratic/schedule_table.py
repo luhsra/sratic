@@ -62,20 +62,17 @@ class SchedulePreprocessor(Preprocessor):
         return new_text.splitlines()
 
 
-def table_from_csv(code: str) -> str:
+def table_from_csv(rows: list) -> str:
     # Generate html table from schedule data (csv)
     # Header is expected to be: KW,Weekday1,Weekday2,...
-    csv_reader = csv.reader(code.strip().splitlines())
-    rows = list(csv_reader)
-    if not rows:
-        return ""
 
     header = '<tr><th><small class="text-muted">KW: </small>Datum</th>'
-    for cell in rows[0][1:]:
+    for cell in list(rows[0].keys())[1:]:
         header += f"<th>{html.escape(cell)}</th>"
     header += "</tr>"
     body = ""
-    for row in rows[1:]:
+    for row in rows:
+        row = list(row.values())
         wdate, cells = row[0].strip(), row[1:]
         pdate = datetime.strptime(wdate, "%d.%m.%y").date()  # noqa: DTZ007
         kw = pdate.isocalendar().week
@@ -140,9 +137,5 @@ class ScheduleExtension(Extension):
         md.preprocessors.register(SchedulePreprocessor(md), "schedule", 40)
 
 
-def schedule_table(path: str) -> str:
-    # TODO: Relative file path?
-    logging.info("Loading schedule from %s", path)
-    with Path(path).open("r") as f:
-        code = f.read()
-    return table_from_csv(code)
+def schedule_table(data: list) -> str:
+    return table_from_csv(data)
