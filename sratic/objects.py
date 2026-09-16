@@ -1,3 +1,4 @@
+import csv
 import datetime
 import logging
 import re
@@ -7,8 +8,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 from .metadata import Constructor, Replace, YAMLFragment
 from .schema import check_schema, schema_for_obj
 
@@ -16,9 +15,9 @@ from .schema import check_schema, schema_for_obj
 def wrap_list[T](lst: T | list[T]) -> list[T]:
     if not lst:
         return []
-    if type(lst) is not list:
-        return [lst]  # ty: ignore[invalid-return-type]
-    return lst
+    if isinstance(lst, list):
+        return lst
+    return [lst]
 
 
 @dataclass(kw_only=True)
@@ -726,23 +725,18 @@ class ObjectStore:
 
 
 def resolve_load_csv(fragment: YAMLFragment, ctx: Constructor) -> Replace:
-    import pandas as pd
-
-    if type(ctx.value) is list:
-        # Serializing and reloading is the only possibility to
-        # get a real dictionary from that YAML internal data structrues.
-        # fn[1] is the extra data
-        kwargs = yaml.load(yaml.serialize(ctx.value[1]), Loader=yaml.Loader)
-        fn = ctx.value[0].value
-    else:
-        kwargs = {}
-        fn = ctx.value
-    assert type(fn) is str, "filename for !csv should be a string"
+    match ctx.value:
+        case [str(), dict()]:
+            fn, kwargs = ctx.value
+        case str():
+            fn, kwargs = ctx.value, {}
+        case _:
+            raise ValueError(f"Invalid value for !csv: {ctx.value}")
     fn = Path(ctx.origin).parent / fn if ctx.origin else Path(fn)
     fragment.sources.add(fn)
-
-    table = pd.read_csv(fn, **kwargs)
-    return Replace([dict(row) for _, row in table.iterrows()])
+    with fn.open() as f:
+        table = list(csv.DictReader(f, **kwargs))
+    return Replace(table)
 
 
 Constructor.add("!csv", resolve_load_csv)

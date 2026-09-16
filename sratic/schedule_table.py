@@ -3,7 +3,6 @@ import html
 import logging
 import re
 from datetime import datetime
-from pathlib import Path
 from textwrap import dedent
 
 import markdown
@@ -45,7 +44,9 @@ class SchedulePreprocessor(Preprocessor):
             # Process Schedule code blocks with preview
             if lang.strip() == "schedule":
                 logging.info("Found Schedule code block")
-                table_html = table_from_csv(code)
+                assert isinstance(code, str)
+                table = list(csv.DictReader(code.splitlines()))
+                table_html = table_from_csv(table)
                 if not table_html:
                     continue
                 new_text += indent + table_html
@@ -62,7 +63,7 @@ class SchedulePreprocessor(Preprocessor):
         return new_text.splitlines()
 
 
-def table_from_csv(rows: list) -> str:
+def table_from_csv(rows: list[dict[str, str | None]]) -> str:
     # Generate html table from schedule data (csv)
     # Header is expected to be: KW,Weekday1,Weekday2,...
 
@@ -73,16 +74,19 @@ def table_from_csv(rows: list) -> str:
     body = ""
     for row in rows:
         row = list(row.values())
-        wdate, cells = row[0].strip(), row[1:]
+        wdate, cells = (row[0] or "").strip(), row[1:]
+        # remove trailing empty cells
+        while cells and cells[-1] is None:
+            cells.pop()
+
         pdate = datetime.strptime(wdate, "%d.%m.%y").date()  # noqa: DTZ007
         kw = pdate.isocalendar().week
         body += f'<tr><td><small class="text-muted">{kw}: </small>{wdate}</td>'
 
         for cell in cells[:-1]:
-            body += f"<td>{format_cell(cell)}</td>"
-        body += (
-            f'<td colspan="{1 + len(rows[0]) - len(row)}">{format_cell(cells[-1])}</td>'
-        )
+            body += f"<td>{format_cell(cell or '')}</td>"
+        # extend last cell to fill remaining columns
+        body += f'<td colspan="{len(rows[0]) - len(cells)}">{format_cell(cells[-1] or "")}</td>'
 
         body += "</tr>"
 
@@ -105,11 +109,13 @@ def format_cell(cell: str) -> str:
             "NOTE": "default",
         }.get(kind)
         if label_class:
-            return f'<span class="label label-{label_class}">{content}</span>'
+            return (
+                f'<span class="label label-{label_class} label-fill">{content}</span>'
+            )
 
         # Important deadlines
         if kind in ["D", "DEADLINE"]:
-            return f'<span class="label label-danger" style="display:inline-block;width:100%">{content}</span>'
+            return f'<span class="label label-danger label-fill">{content}</span>'
 
         # Numbered lectures/exercises/etc.
         if ma := re.match(r"^(.)(\d+)$", kind):
@@ -137,5 +143,5 @@ class ScheduleExtension(Extension):
         md.preprocessors.register(SchedulePreprocessor(md), "schedule", 40)
 
 
-def schedule_table(data: list) -> str:
+def schedule_table(data: list[dict[str, str | None]]) -> str:
     return table_from_csv(data)

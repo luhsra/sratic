@@ -48,9 +48,21 @@ class Constructor:
         resolve: Callable[["YAMLFragment", "Constructor"], Replace | Splice],
     ) -> None:
         """Register a deferred constructor for a YAML tag."""
-        yaml.add_constructor(
-            tag, lambda loader, node: Constructor(tag, node.value, resolve)
-        )
+
+        def deferred(loader: yaml.Loader, node: yaml.Node) -> Constructor:
+            # Construct a Python value from the YAML node
+            match node:
+                case yaml.ScalarNode():
+                    value = loader.construct_scalar(node)
+                case yaml.SequenceNode():
+                    value = loader.construct_sequence(node, deep=True)
+                case yaml.MappingNode():
+                    value = loader.construct_mapping(node, deep=True)
+                case _:
+                    raise TypeError(f"Unsupported YAML: {node}")
+            return Constructor(tag, value, resolve)
+
+        yaml.add_constructor(tag, deferred)
 
 
 class YAMLFragment:
