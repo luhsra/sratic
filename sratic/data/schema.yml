@@ -44,8 +44,7 @@ link: &type_link
     doc: "The URI of the external webpage"
 
 external_link: &type_external_link
-  <<: *type_link
-  <<: *type_object
+  <<: [*type_link, *type_object]
 
 page: &type_page
   <<: *type_object
