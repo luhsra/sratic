@@ -1,5 +1,6 @@
 import csv
 import datetime
+import dateutil
 import logging
 import re
 import uuid as libuuid
@@ -682,7 +683,9 @@ class ObjectStore:
                 return x
             if self.isA(x, "publication"):
                 year = int(x["bibtex"].get("year", "0"))
-                month = x["bibtex"].get("month", "0")
+                month = x["bibtex"].get("month", "1")
+                day = x["bibtex"].get("day", "1")
+                date = x["bibtex"].get("date", None)
                 if month.isdigit():
                     month = int(month)
                 else:
@@ -696,9 +699,27 @@ class ObjectStore:
                         month = months.index(month.lower()[:3]) + 1
                     except ValueError:
                         pass
+
+                if day.isdigit():
+                    day = int(day)
+                else:
+                    day = 0
+
+                dt = None
+                if date is not None:
+                    try:
+                        dtdef = datetime.date(year, month, day)
+                        dt = dateutil.parser.parse(date, default=dtdef)
+                        year = dt.year
+                        month = dt.month
+                        date = dt.day
+                    except ValueError as e:
+                        logging.warning("date invalid! %s\n%s", e, x)
+
                 return (
                     str(10000 - year)
                     + str(100 - month - 1)
+                    + str(100 - day - 1)
                     + x.get("title", "")
                     + x["id"]
                 )
