@@ -21,7 +21,10 @@ www: PHONY
 	cd example; ${SRATIC} -b . -t ../example.templates -d ../example.www -j $(NPROC)
 
 clean: PHONY
-	rm -rf $(TARGET)/* 
+	rm -rf $(TARGET)/*
+
+test: PHONY
+	${PYTHON} -m unittest discover -s tests -v
 
 serve:
 	${PYTHON} -m http.server -d $(TARGET)
