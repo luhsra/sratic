@@ -79,7 +79,7 @@ def table_from_csv(rows: list[dict[str, str | None]]) -> str:
         while cells and cells[-1] is None:
             cells.pop()
 
-        pdate = datetime.strptime(wdate, "%d.%m.%y").date()  # noqa: DTZ007
+        pdate = datetime.strptime(wdate, "%d.%m.%y").date()
         kw = pdate.isocalendar().week
         body += f'<tr><td><small class="text-muted">{kw}: </small>{wdate}</td>'
 

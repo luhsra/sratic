@@ -1,4 +1,3 @@
-import io
 import logging
 import operator
 import re
@@ -12,50 +11,33 @@ from jinja2.parser import Parser
 
 
 class YamlExtension(Extension):
+    tags = {"yaml", "box"}
+
     def __init__(self, environment: Environment) -> None:
-        # a set of names that trigger the extension.
-        self.tags = {"yaml", "box"}
         super().__init__(environment)
-        self.environment.filters.update(
-            {
-                "yaml": self._parse_yaml,
-                "box": self._parse_box,
-            }
+        environment.filters.update(
+            yaml=self._parse_yaml,
+            box=self._parse_box,
         )
 
-    def parse(self, parser: Parser) -> list[nodes.Node]:
+    def parse(self, parser: Parser) -> nodes.Node:
         tag = next(parser.stream)
-        lineno = tag.lineno
-
         parser.stream.expect("name:as")
         target = parser.parse_assign_target()
 
-        body = parser.parse_statements(("name:end" + str(tag),), drop_needle=True)
-        macro_name = "_" + parser.free_identifier().name
+        body = parser.parse_statements((f"name:end{tag.value}",), drop_needle=True)
+        filter_node = nodes.Filter(
+            None,
+            tag.value,
+            [nodes.Const(target.name)],
+            [],
+            None,
+            None,
+        )
+        return nodes.AssignBlock(target, filter_node, body).set_lineno(tag.lineno)
 
-        return [
-            nodes.Macro(macro_name, [], [], body).set_lineno(lineno),
-            nodes.Assign(
-                target,
-                nodes.Filter(
-                    nodes.Call(
-                        nodes.Name(macro_name, "load").set_lineno(lineno),
-                        [],
-                        [],
-                        None,
-                        None,
-                    ).set_lineno(lineno),
-                    str(tag),
-                    [nodes.Const(str(target.name))],
-                    [],
-                    None,
-                    None,
-                ).set_lineno(lineno),
-            ).set_lineno(lineno),
-        ]
-
-    def _parse_yaml(self, text: str, *args):
-        return yaml.load(io.StringIO(text), Loader=yaml.Loader)
+    def _parse_yaml(self, text: str, _name: str):
+        return yaml.safe_load(text)
 
     def _parse_box(self, text: str, boxname: str) -> str:
         globals: dict = self.environment.globals

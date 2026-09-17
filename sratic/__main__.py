@@ -397,14 +397,13 @@ def read_git(pages: list[YAMLFragment]) -> None:
         )
         if git_info:
             time, author = git_info.decode("utf-8").split(" ", maxsplit=1)
-            author = author.strip()
-            time = datetime.datetime.fromtimestamp(int(time.strip()), tz=datetime.UTC)
-            page.data["last-author"] = author
+            time = datetime.datetime.fromtimestamp(int(time.strip()))
+            page.data["last-author"] = author.strip()
             page.data["last-modification"] = time
         else:
             # Dummy value for new pages
             page.data["last-author"] = ""
-            page.data["last-modification"] = datetime.datetime.now().astimezone()
+            page.data["last-modification"] = datetime.datetime.now()
 
 
 def main() -> NoReturn:

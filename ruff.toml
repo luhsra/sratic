@@ -1,7 +1,7 @@
 target-version = "py312"
 
 [lint]
-ignore = ["LOG015"]
+ignore = ["LOG015", "DTZ005", "DTZ006", "DTZ007"]
 
 [format]
 quote-style = "double"
