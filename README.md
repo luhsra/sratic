@@ -290,13 +290,12 @@ SRAtic requires Python 3.12 or newer.
 - python3-yaml
 - python3-jinja2
 - python3-markdown
-- python3-pandas
 
 All of these are installed on the lab machines.
 
 ### Installation on MacOS (with MacPorts) ###
 
 - install **python3.12** and related packages:
-  `sudo port install python312 py312-jinja2 py312-yaml py312-pandas py312-markdown`
+  `sudo port install python312 py312-jinja2 py312-yaml py312-markdown`
 - set **python312** as the default **python3**:
   `sudo port select --set python3 python312`
