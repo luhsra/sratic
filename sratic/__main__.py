@@ -352,11 +352,11 @@ class Generator:
         if formatted:
             self.dump_dependencies(ref_objs, dest_path)
 
-        # create permalink symlinks
-        if page.data.get("permalink.href"):
+        # create permalink redirects
+        if not self.options.dry and page.data.get("permalink.href"):
             self.create_permalink(page.data["permalink.href"], page)
 
-        if page.data.get("permalink.alias.href"):
+        if not self.options.dry and page.data.get("permalink.alias.href"):
             self.create_permalink(page.data["permalink.alias.href"], page)
 
     def create_permalink(self, href: str, page: YAMLFragment) -> None:
@@ -511,9 +511,10 @@ def main() -> NoReturn:
                 )
                 symlink = fn.readlink()
                 logging.info("Symlink: %s -> %s", dst, symlink)
-                dst.unlink(missing_ok=True)
-                dst.parent.mkdir(parents=True, exist_ok=True)
-                dst.symlink_to(symlink)
+                if not args.dry:
+                    dst.unlink(missing_ok=True)
+                    dst.parent.mkdir(parents=True, exist_ok=True)
+                    dst.symlink_to(symlink)
                 continue
 
             with fn.open("rb") as fd:
@@ -529,10 +530,11 @@ def main() -> NoReturn:
                 pages.append(page)
             elif ext in asset_suffixes | ASSET_SUFFIXES or "htaccess" in fn.name:
                 assets.append(unicodedata.normalize("NFC", "/" + fn.as_posix()))
-                dst.parent.mkdir(parents=True, exist_ok=True)
-                if not dst.exists() or dst.stat().st_mtime < fn.stat().st_mtime:
-                    shutil.copyfile(fn, dst)
-                    logging.info("Copying: %s", fn)
+                if not args.dry:
+                    dst.parent.mkdir(parents=True, exist_ok=True)
+                    if not dst.exists() or dst.stat().st_mtime < fn.stat().st_mtime:
+                        shutil.copyfile(fn, dst)
+                        logging.info("Copying: %s", fn)
             elif (
                 ext in {".yml", ".bib", ".el", ".map", ".py", ".dia", ".pickle"}
                 or "data/bib/" in fn.as_posix()
@@ -582,7 +584,7 @@ def main() -> NoReturn:
         except ChildProcessError:
             break
 
-    if args.dump_objects:
+    if args.dump_objects and not args.dry:
         gen.exporter.dump(Path(gen.destination_directory) / ".objects")
 
     if gen.urls:

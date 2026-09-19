@@ -20,6 +20,9 @@ www: PHONY
 	mkdir -p example.www
 	cd example; ${SRATIC} -b . -t ../example.templates -d ../example.www -j $(NPROC)
 
+dry: PHONY
+	cd example; ${SRATIC} -b . -t ../example.templates -d ../example.www -j $(NPROC) --dry
+
 clean: PHONY
 	rm -rf $(TARGET)/*
 

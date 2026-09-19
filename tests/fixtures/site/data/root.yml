@@ -1,0 +1,8 @@
+site:
+  baseurl: https://example.test
+  title: Fixture Site
+  short_title: Fixture
+  default_templates:
+    nav: nav.jinja
+people: !csv people.csv
+bibliography: !bibtex references.bib

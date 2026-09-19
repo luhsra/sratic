@@ -28,7 +28,7 @@ def check_schema(
     obj: dict[str, Any],
     objects: "ObjectStore",
 ) -> bool | None:
-    """Validates a object  against the schema definition"""
+    """Validates a object against the schema definition, and resolves references"""
     Type = obj.get("type")
     # If it has no type, we just can yes
     if not Type:

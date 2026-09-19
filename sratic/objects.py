@@ -1,6 +1,5 @@
 import csv
 import datetime
-import dateutil
 import logging
 import re
 import uuid as libuuid
@@ -8,6 +7,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+import dateutil
 
 from .metadata import Constructor, Replace, YAMLFragment
 from .schema import check_schema, schema_for_obj
@@ -294,9 +295,9 @@ class ObjectStore:
         self.schema = schema
 
         # ID -> YAMLFragment
-        page_objects = {}
+        page_objects: dict[str, YAMLFragment] = {}
 
-        aliases = {}
+        aliases: dict[str, YAMLFragment] = {}
 
         # Step 1: Every page object should have an ID. If it does not
         # have an ID, we assign the local part of the page as an id. E.g.
@@ -315,13 +316,20 @@ class ObjectStore:
 
             # Step 1.1: include all objects in this page to the object
             # index.
-            for obj in page.objects():
-                objects[obj["id"]] = obj
-                obj["__file__"] = page.path
-            # Step 1.2: build an index of all page yaml fragments
             assert page.data["id"] not in page_objects, (
                 f"Duplicate Page ID: {page.data['id']}"
             )
+            for obj in page.objects():
+                existing = objects.get(obj["id"])
+                page_replaces_anchor = obj is page.data and existing and self.isA(
+                    existing, "anchor"
+                )
+                assert existing is None or existing is obj or page_replaces_anchor, (
+                    f"Duplicate Object ID ({obj['id']})"
+                )
+                objects[obj["id"]] = obj
+                obj["__file__"] = page.path
+            # Step 1.2: build an index of all page yaml fragments
             page_objects[page.data["id"]] = page
 
             # Step 1.3: Add the page type to the page
@@ -419,15 +427,15 @@ class ObjectStore:
                     self.object_constructors[T](obj)
         # Step 8: Generate alias IDs for some objects
         for obj in list(objects.values()):
-            aliases = []
+            obj_aliases: list[str] = []
             if self.isA(obj, "person") and obj["name"] not in objects:
-                aliases.append(obj["name"])
+                obj_aliases.append(obj["name"])
 
-            # Permalink aliases provoke an object alias
+            # Permalink obj_aliases provoke an object alias
             if "permalink.alias" in obj:
-                aliases.append(obj["permalink.alias"])
+                obj_aliases.append(obj["permalink.alias"])
 
-            for id in aliases:
+            for id in obj_aliases:
                 if id in objects:
                     assert obj == objects[id], f"Duplicate object ID: {id}"
                 else:

@@ -11,7 +11,7 @@ from sratic.metadata import Constructor, YAMLDataFactory, YAMLFragment
 
 class YAMLTagTests(unittest.TestCase):
     def setUp(self) -> None:
-        generator = Generator.__new__(Generator)
+        generator = Generator.__new__(Generator)  # No constructor call
         Constructor.add("!markdown", generator.resolve_markdown_constructor)
         self.factory = YAMLDataFactory(None)
         temporary_directory = tempfile.TemporaryDirectory(dir=Path.cwd())
@@ -81,11 +81,8 @@ class YAMLTagTests(unittest.TestCase):
 
     def test_path(self) -> None:
         fragment = self.load_yaml("value: !path assets/logo.svg\n")
-        expected = (
-            "/"
-            + (self.directory / "assets" / "logo.svg")
-            .relative_to(Path.cwd())
-            .as_posix()
+        expected = "/" + (
+            (self.directory / "assets" / "logo.svg").relative_to(Path.cwd()).as_posix()
         )
 
         self.assertEqual(fragment.data["value"], expected)

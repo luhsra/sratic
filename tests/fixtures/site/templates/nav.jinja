@@ -1,0 +1,4 @@
+{% macro link(object, title=None, link_attr=None, title_attr=None, compact=True) -%}
+{% set object = deref(object) -%}
+<a href="{{ object.href | link }}">{{ title or object.title }}</a>
+{%- endmacro %}

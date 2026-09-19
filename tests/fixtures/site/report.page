@@ -1,0 +1,5 @@
+---
+formatter: jinja
+formatter.output_templates: [page.txt.raw, page.csv.raw]
+---
+{{ object_list('person')[0].name -}}
