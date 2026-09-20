@@ -30,6 +30,7 @@
                 py.markdown
                 py.pyyaml
                 py.typst
+                py.dateutils
               ]))
               pkgs.gnumake
               pkgs.ruff

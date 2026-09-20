@@ -9,8 +9,9 @@ from pathlib import Path
 from typing import Any
 
 import dateutil
+import yaml
 
-from .metadata import Constructor, Replace, YAMLFragment
+from .metadata import YAMLFragment, YAMLLoader
 from .schema import check_schema, schema_for_obj
 
 
@@ -321,8 +322,8 @@ class ObjectStore:
             )
             for obj in page.objects():
                 existing = objects.get(obj["id"])
-                page_replaces_anchor = obj is page.data and existing and self.isA(
-                    existing, "anchor"
+                page_replaces_anchor = (
+                    obj is page.data and existing and self.isA(existing, "anchor")
                 )
                 assert existing is None or existing is obj or page_replaces_anchor, (
                     f"Duplicate Object ID ({obj['id']})"
@@ -753,19 +754,17 @@ class ObjectStore:
         return sorted(elem, key=sort_key, **kwargs)
 
 
-def resolve_load_csv(fragment: YAMLFragment, ctx: Constructor) -> Replace:
-    match ctx.value:
+def resolve_load_csv(loader: YAMLLoader, node: yaml.Node) -> Any:
+    value = loader.construct_any(node)
+    match value:
         case [str(), dict()]:
-            fn, kwargs = ctx.value
+            fn, kwargs = value
         case str():
-            fn, kwargs = ctx.value, {}
+            fn, kwargs = value, {}
         case _:
-            raise ValueError(f"Invalid value for !csv: {ctx.value}")
-    fn = Path(ctx.origin).parent / fn if ctx.origin else Path(fn)
-    fragment.sources.add(fn)
+            raise ValueError(f"Invalid value for !csv: {value}")
+    fn = Path(loader.path).parent / fn if loader.path else Path(fn)
+    loader.add_source(fn)
     with fn.open() as f:
         table = list(csv.DictReader(f, **kwargs))
-    return Replace(table)
-
-
-Constructor.add("!csv", resolve_load_csv)
+    return table

@@ -1,312 +1,309 @@
-# Metadata in SRAtic is stored as YAML. It can be contained directly
-# in .yml files, or as a header within a page.
+"""A safe PyYAML parser supporting file inclusion and collection splicing."""
 
-import io
-import logging
-import sys
+import copy
+import re
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, TextIO
 
 import yaml
+from yaml.constructor import ConstructorError
 
 
 @dataclass
-class Replace:
-    value: Any
-    again: bool = False
-
-
-@dataclass
-class Splice:
-    value: list | dict
-    again: bool = False
-
-
-@dataclass
-class Constructor:
-    """Deferred constructor for YAML tags."""
-
-    tag: str
-    value: Any
-    """YAML node value"""
-    resolve: Callable[["YAMLFragment", "Constructor"], Replace | Splice] = field(
-        repr=False
-    )
-    """Handler for resolving the constructor, the result can either be replaced or spliced into the parent object"""
-    origin: Path | None = None
-    """Original path of the fragment"""
-
-    def __call__(self, fragment: "YAMLFragment") -> Replace | Splice:
-        logging.debug(f"Constructor: {self}")
-        return self.resolve(fragment, self)
-
-    @staticmethod
-    def add(
-        tag: str,
-        resolve: Callable[["YAMLFragment", "Constructor"], Replace | Splice],
-    ) -> None:
-        """Register a deferred constructor for a YAML tag."""
-
-        def deferred(loader: yaml.Loader, node: yaml.Node) -> Constructor:
-            # Construct a Python value from the YAML node
-            match node:
-                case yaml.ScalarNode():
-                    value = loader.construct_scalar(node)
-                case yaml.SequenceNode():
-                    value = loader.construct_sequence(node, deep=True)
-                case yaml.MappingNode():
-                    value = loader.construct_mapping(node, deep=True)
-                case _:
-                    raise TypeError(f"Unsupported YAML: {node}")
-            return Constructor(tag, value, resolve)
-
-        yaml.add_constructor(tag, deferred)
-
-
 class YAMLFragment:
-    def __init__(self, config: Any, path: Path, data: Any) -> None:
-        self.config: Any = config
-        self.path: Path = path  # Relative path to source file
-        self.data: Any = data
-        self.sources: set[Path] = {path}
+    """Represents a parsed YAML fragment with dependencies."""
 
-        self.__include_filename(self.data, path)
+    path: Path
+    data: Any
+    sources: set[Path] = field(default_factory=set)
 
-    def __repr__(self) -> str:
-        return f"YAMLFragment('{self.path}')"
+    def __post_init__(self) -> None:
+        self.sources.add(self.path)
 
-    def __include_filename(self, data: Any, fn: Path) -> None:
-        """Recursively include the filename in any constructor data."""
-        if type(data) is list:
-            for elem in data:
-                self.__include_filename(elem, fn)
-        elif type(data) is dict:
-            for elem in data:
-                self.__include_filename(data[elem], fn)
-        elif isinstance(data, Constructor):
-            data.origin = fn
+    def merge(self, other: "YAMLFragment"):
+        self.sources.update(other.sources)
+        assert type(self.data) == type(other.data)
+        if type(other.data) is dict:
+            self.data.update(other.data)
+        elif type(other.data) is list:
+            self.data.extend(other.data)
+        else:
+            raise TypeError(f"Invalid merge: {type(self.data)} <- {type(other.data)}")
 
     def objects(self) -> Iterator[dict[str, Any]]:
-        """Iterator over all objects"""
-        visited: set[int] = set()
-        for prefix, k in self.__objects(self.data, visited):
-            yield k
+        return self._objects(self.data, set())
 
-    def __objects(
-        self, x: Any, visited: set[int], prefix: list[Any] | None = None
-    ) -> Iterator[tuple[list[Any], dict[str, Any]]]:
-        """A depth-first search through to reveal all objects in the object space."""
-        if prefix is None:
-            prefix = []
+    def _objects(self, x: Any, visited: set[int]) -> Iterator[dict[str, Any]]:
         if id(x) in visited:
             return
         visited.add(id(x))
 
         if type(x) is list:
-            for idx, elem in enumerate(x):
-                if type(elem) not in (list, dict):
-                    continue
-                for k in self.__objects(elem, visited, prefix + [idx]):
-                    yield k
-
+            for v in x:
+                yield from self._objects(v, visited)
         elif type(x) is dict:
             if "id" in x or "type" in x:
                 if "id" not in x:
-                    assert self.path is not None
                     x["id"] = f"{self.path}-{id(x)}"
-                yield prefix, x
-
-            for key, elem in x.items():
-                if type(elem) not in (list, dict):
-                    continue
-                for k in self.__objects(elem, visited, prefix + [key]):
-                    yield k
+                yield x
+            for v in x.values():
+                yield from self._objects(v, visited)
 
 
-class YAMLDataFactory:
-    def __init__(self, config: Any) -> None:
-        # Absolute filenames -> YAMLFragment
-        self.__config = config
-        self.__cache: dict[Path, YAMLFragment] = {}
+class YAMLError(ValueError):
+    """Raised when loading or resolving YAML fails."""
 
-        # The !include constructor does insert the whole referenced
-        # document instead of the field
-        Constructor.add("!include", self.__resolve_include)
 
-        # The !splice tag is similar to !include, but merges the
-        # referenced document into the parent node.
-        Constructor.add("!splice", self.__resolve_splice)
+class FrontmatterError(YAMLError):
+    """Raised when the front matter is invalid."""
 
-        # The !path constructor
-        Constructor.add("!path", self.__resolve_path)
 
-    def __load_fragment(self, filename: Path) -> YAMLFragment:
-        """Load YAML Fragment, with caching. Fragments do not only originate
-        in .yml files, but also pages can be given.
+class IncludeCycleError(YAMLError):
+    """Raised when an include/splice chain refers back to an active file."""
 
-        """
-        filename = filename.absolute()
-        if filename in self.__cache:
-            return self.__cache[filename]
 
-        if filename.suffix in {".yml", ".myml"}:
-            # Load data file
-            if not filename.exists():
-                # Fallback to SRAtic provided files
-                filename = Path(__file__).parent / "data" / filename.name
-            with Path(filename).open() as stream:
-                try:
-                    if filename.suffix == ".myml":
-                        data = list(yaml.load_all(stream, Loader=yaml.Loader))
-                    else:
-                        data = yaml.load(stream, Loader=yaml.Loader)
-                except Exception:
-                    logging.error("Error in %s", filename)
-                    raise
+class SpliceTypeError(YAMLError):
+    """Raised when the spliced value does not match its parent collection."""
 
-            fragment = YAMLFragment(self.__config, filename, data)
-        else:
-            # Scrape data from file preface
-            with Path(filename).open() as fd:
-                start = fd.read(3)
-                if start == "---":
-                    text = []
-                    while True:
-                        line = fd.readline()
-                        if line is None or line.strip() == "---":
-                            break
-                        text.append(line)
 
-                    try:
-                        data = yaml.load(io.StringIO("".join(text)), Loader=yaml.Loader)
-                    except Exception:
-                        logging.error("Error in %s", filename)
-                        raise
+@dataclass(frozen=True)
+class _Splice:
+    value: Any
+    source: Path
 
-                    fragment = YAMLFragment(self.__config, filename, data)
-                else:
-                    fragment = YAMLFragment(self.__config, filename, {})
-                ### Page Content
-                fragment.data["page-body"] = fd.read()
 
-            # Pages also read in their directory 'variables' file, implicitly
-            dirname = Path(filename).parent
-            dir_file = dirname / "variables.yml"
-            if dir_file.exists():
-                if type(fragment.data) is list:
-                    fragment.data.append(
-                        Constructor("!splice", dir_file, self.__resolve_splice)
+def _resolve_splices(value: Any, path: Path, visited: set[int]) -> Any:
+    if isinstance(value, _Splice):
+        raise SpliceTypeError(f"splice without parent {path}")
+
+    if not isinstance(value, (list, dict)) or id(value) in visited:
+        return value
+    visited.add(id(value))
+
+    if isinstance(value, list):
+        result = []
+        for item in value:
+            if isinstance(item, _Splice):
+                if not isinstance(item.value, list):
+                    raise SpliceTypeError(
+                        f"cannot splice {type(item.value).__name__} into {type(value).__name__} {path}: {item.source}"
                     )
-                elif type(fragment.data) is dict:
-                    fragment.data[object()] = Constructor(
-                        "!splice", dir_file, self.__resolve_splice
-                    )
-                else:
-                    sys.exit(
-                        f"YAML Type in {filename} is wrong ({type(fragment.data)})"
-                    )
-
-        # Mark as placed in cache. Cannot be changed.
-        self.__cache[filename] = fragment
-        return fragment
-
-    def load_file(self, filename: Path) -> YAMLFragment:
-        """Loads file, and resolves all external references. As a result, we
-        get an newly created YAML Fragment."""
-
-        ret = YAMLFragment(self.__config, filename, {})
-        ret.data = [Constructor("!include", filename, self.__resolve_include)]
-        again = True
-        while again:
-            ret, again = self.__resolve(ret, ret.data)
-
-        ret.data = ret.data[0]
-        if ret.data is None:
-            ret.data = {}
-        return ret
-
-    ### Resolve Constructors
-    def __resolve_splice(self, fragment: YAMLFragment, ctx: Constructor) -> Splice:
-        fn = ctx.origin.parent / ctx.value if ctx.origin else Path(ctx.value)
-        if "*" in fn.name:
-            fns = fn.parent.glob(fn.name)
-        else:
-            fns = [fn]
-
-        splice_data: dict | list | None = None
-        for fn in fns:
-            other = self.__load_fragment(fn)
-            fragment.sources.update(other.sources)
-            if splice_data is None:
-                splice_data = other.data.copy()
-            elif type(other.data) is dict:
-                assert type(splice_data) is dict, (
-                    f"Splicing {fn}: Type mismatch ({type(splice_data)} != {type(other.data)})"
-                )
-                splice_data.update(other.data)
-            elif type(other.data) is list:
-                assert type(splice_data) is list, (
-                    f"Splicing {fn}: Type mismatch ({type(splice_data)} != {type(other.data)})"
-                )
-                splice_data += other.data
+                result.extend(item.value)
             else:
-                assert False, f"Splicing {fn}: Unexpected type: {type(other.data)}"
+                result.append(_resolve_splices(item, path, visited))
+        value[:] = result
+        return value
 
-        assert splice_data is not None, f"Splicing {fn}: No data"
-        return Splice(splice_data, again=True)
+    for key, item in list(value.items()):
+        if isinstance(item, _Splice):
+            if not isinstance(item.value, dict):
+                raise SpliceTypeError(
+                    f"cannot splice {type(item.value).__name__} into {type(value).__name__} {path}: {item.source}"
+                )
+            value.update(item.value)
+            if key not in item.value:
+                del value[key]
+        elif value.get(key) is item:
+            value[key] = _resolve_splices(item, path, visited)
+    return value
 
-    def __resolve_include(self, fragment: YAMLFragment, ctx: Constructor) -> Replace:
-        fn = ctx.origin.parent / ctx.value if ctx.origin else Path(ctx.value)
-        other = self.__load_fragment(fn)
-        fragment.sources.update(other.sources)
-        return Replace(other.data, again=True)
 
-    def __resolve_path(self, fragment: YAMLFragment, ctx: Constructor) -> Replace:
-        if Path(ctx.value).is_absolute():
-            return Replace(ctx.value)
-        assert ctx.origin, "Path not absolute and no origin available"
-        path = (Path(ctx.origin).parent / ctx.value).resolve()
-        return Replace("/" + path.relative_to(Path.cwd()).as_posix())
+class YAMLLoader(yaml.SafeLoader):
+    parser: "YAMLParser"
+    path: Path
+    sources: set[Path]
 
-    def __resolve(self, fragment: YAMLFragment, x: Any) -> tuple[YAMLFragment, bool]:
-        """One depth-first search, to resolve constructors. Returns true, if
-        this process has to be repeated.
+    def construct_any(self, node: yaml.Node) -> Any:
+        if isinstance(node, yaml.SequenceNode):
+            return self.construct_sequence(node, deep=True)
+        if isinstance(node, yaml.MappingNode):
+            return self.construct_mapping(node, deep=True)
+        if isinstance(node, yaml.ScalarNode):
+            return self.construct_scalar(node)
+        raise TypeError(f"Invalid YAML: {type(node)}")
 
-        """
-        again = False
-        if type(x) is list:
-            for idx, value in enumerate(x):
-                if isinstance(value, Constructor):
-                    res = value(fragment)
-                    if isinstance(res, Replace):
-                        x[idx] = res.value
-                    elif isinstance(res, Splice):
-                        assert type(res.value) is list
-                        x[idx : idx + 1] = res.value
-                    if res.again:
-                        again = True
+    def construct_path(self, node: yaml.Node) -> Path:
+        path = self.construct_scalar(node)
+        if not isinstance(path, str) or not path:
+            raise TypeError("expect a non-empty filename")
+        return self.path.parent / path
 
-                # Recursion
-                if type(value) in (list, dict):
-                    _, change = self.__resolve(fragment, value)
-                    again = change or again
-        elif type(x) is dict:
-            for key, value in list(x.items()):
-                if isinstance(value, Constructor):
-                    res = value(fragment)
-                    if isinstance(res, Replace):
-                        x[key] = res.value
-                    elif isinstance(res, Splice):
-                        assert type(res.value) is dict
-                        x.update(res.value)
-                        del x[key]
-                    if res.again:
-                        again = True
+    def add_source(self, *paths: Path) -> None:
+        self.sources.update(paths)
 
-                # Recursion
-                if type(value) in (list, dict):
-                    _, change = self.__resolve(fragment, value)
-                    again = change or again
-        return fragment, again
+
+def _add_constructor(
+    loader: type[YAMLLoader],
+    tag: str,
+    constructor: Callable[[YAMLLoader, yaml.Node], Any],
+) -> None:
+    def wrapper(loader, node, constructor=constructor, tag=tag):
+        try:
+            return constructor(loader, node)
+        except ConstructorError as error:
+            if "unconstructable recursive node" not in str(error):
+                raise
+            raise IncludeCycleError(
+                f"YAML include/splice cycle at {loader.path}"
+            ) from error
+        except Exception as error:
+            raise type(error)(f"{tag}: {error}") from error
+
+    loader.add_constructor(tag, wrapper)
+
+
+def _constructor_relpath(loader: YAMLLoader, node: yaml.Node) -> str:
+    value = loader.construct_scalar(node)
+    path = Path(value)
+    if path.is_absolute():
+        return value
+    path = (loader.path.parent / path).resolve()
+    return "/" + path.relative_to(Path.cwd()).as_posix()
+
+
+def _construct_include(loader: YAMLLoader, node: yaml.Node) -> Any:
+    path = loader.construct_path(node)
+    loader.add_source(path)
+    fragment = loader.parser.load_file(path)
+    loader.add_source(*fragment.sources)
+    return fragment.data
+
+
+def _construct_splice(loader: YAMLLoader, node: yaml.Node) -> _Splice:
+    referenced = loader.construct_path(node)
+    paths = (
+        list(referenced.parent.glob(referenced.name))
+        if "*" in referenced.name
+        else [referenced]
+    )
+    if not paths:
+        raise SpliceTypeError(f"Splicing {referenced}: No data")
+    loader.add_source(*paths)
+
+    result: YAMLFragment | None = None
+    for path in paths:
+        fragment = loader.parser.load_file(path)
+        if result is None:
+            result = fragment
+        else:
+            result.merge(fragment)
+        loader.add_source(*fragment.sources)
+
+    assert result is not None
+    return _Splice(result.data, referenced)
+
+
+class YAMLParser:
+    """Load YAML files with an instance-local parsed-file cache.
+
+    Create a new parser (or call :meth:`clear_cache`) when files on disk may
+    have changed. Returned values are copies, so callers cannot mutate cached
+    values or cause two include sites to share mutable state.
+    """
+
+    def __init__(
+        self,
+        constructors: dict[str, Callable[[YAMLLoader, yaml.Node], Any]] | None = None,
+    ) -> None:
+        # Memoize parsed YAML fragments
+        self._cache: dict[Path, YAMLFragment] = {}
+        # Track active paths to detect circles
+        self._active: list[Path] = []
+
+        # Constructors are bound to the class -> contain instance-local state
+        class _SubLoader(YAMLLoader):
+            pass
+
+        _add_constructor(_SubLoader, "!path", _constructor_relpath)
+        _add_constructor(_SubLoader, "!include", _construct_include)
+        _add_constructor(_SubLoader, "!splice", _construct_splice)
+
+        if constructors is not None:
+            for tag, constructor in constructors.items():
+                _add_constructor(_SubLoader, tag, constructor)
+        self._loader = _SubLoader
+
+    def load_file(self, path: Path) -> YAMLFragment:
+        """Load *path*, resolving all includes and splices recursively."""
+        requested_path = Path(path)
+        resolved_path = requested_path.resolve()
+
+        if resolved_path in self._cache:
+            result = copy.deepcopy(self._cache[resolved_path])
+            result.path = requested_path
+            result.sources.add(requested_path)
+            return result
+
+        if resolved_path in self._active:
+            cycle_start = self._active.index(resolved_path)
+            cycle = self._active[cycle_start:] + [resolved_path]
+            rendered = " -> ".join(str(item) for item in cycle)
+            raise IncludeCycleError(f"YAML include/splice cycle: {rendered}")
+
+        self._active.append(resolved_path)
+        try:
+            result = self._parse_file(path)
+            self._cache[resolved_path] = result
+            result = copy.deepcopy(result)
+            result.path = requested_path
+            result.sources.add(requested_path)
+            return result
+        except YAMLError:
+            raise
+        except Exception as error:
+            chain = " -> ".join(str(item) for item in self._active)
+            raise YAMLError(f"{error} (source chain: {chain})") from error
+        finally:
+            self._active.pop()
+
+    def _parse_file(self, path: Path) -> YAMLFragment:
+        resolved_path = path.resolve()
+
+        with resolved_path.open("r") as stream:
+            if resolved_path.suffix in {".yml", ".yaml"}:
+                result = self._load_stream(stream, resolved_path)
+            elif resolved_path.suffix == ".myml":
+                result = self._load_stream(stream, resolved_path, multiple=True)
+            elif stream.readline().rstrip() == "---":
+                text = stream.read()
+                end = re.search(r"^---\s*$", text, re.MULTILINE)
+                if not end:
+                    raise FrontmatterError("Unterminated YAML front matter")
+
+                result = self._load_stream(text[: end.start()], resolved_path)
+                if not isinstance(result.data, dict):
+                    raise FrontmatterError("Page YAML front matter must be a mapping")
+                result.data["page-body"] = text[end.end() :].lstrip()
+            else:
+                stream.seek(0)
+                result = YAMLFragment(resolved_path, {"page-body": stream.read()})
+
+        is_page = resolved_path.suffix not in {".yml", ".yaml", ".myml"}
+        variables = resolved_path.parent / "variables.yml"
+        if is_page and variables.exists():
+            result.merge(self.load_file(variables))
+        return result
+
+    def _load_stream(
+        self, stream: TextIO | str, path: Path, multiple: bool = False
+    ) -> YAMLFragment:
+        loader = self._loader(stream)
+        loader.parser = self
+        loader.path = path
+        loader.sources = {path}
+        try:
+            if multiple:
+                value = []
+                while loader.check_data():
+                    value.append(loader.get_data())
+            else:
+                value = loader.get_single_data()
+            if value is None:
+                value = {}
+            result = YAMLFragment(path, value, loader.sources)
+            _resolve_splices(result.data, path, set())
+            return result
+        finally:
+            loader.dispose()

@@ -9,7 +9,6 @@ from sratic.schema import check_schema
 class SchemaTests(unittest.TestCase):
     def test_dereference(self) -> None:
         schema = YAMLFragment(
-            None,
             Path("schema.yml"),
             {
                 "team": {

@@ -7,26 +7,26 @@ from pathlib import Path
 from typing import Any
 from urllib import request
 
-from .metadata import Constructor, Replace, YAMLFragment
+import yaml
+
+from .metadata import YAMLLoader
 
 BIB2JSON_VERSION = (0, 1, 2)
 
 
-def resolve_load_bibtex(fragment: YAMLFragment, ctx: Constructor) -> Replace:
-    logging.debug(f"Resolve bibtex {ctx.value}")
-    match ctx.value:
+def resolve_load_bibtex(loader: YAMLLoader, node: yaml.Node) -> Any:
+    value = loader.construct_any(node)
+    logging.debug(f"Resolve bibtex {value}")
+    match value:
         case [str(), dict()]:
-            fn, modify_data = ctx.value
+            fn, modify_data = value
         case str():
-            fn, modify_data = ctx.value, {}
+            fn, modify_data = value, {}
         case _:
-            raise ValueError(f"Invalid value for !bibtex: {ctx.value}")
-    fn = Path(ctx.origin).parent / fn if ctx.origin else Path(fn)
-    fragment.sources.add(fn)
-    return Replace(load_bibtex(fn, modify_data=modify_data))
-
-
-Constructor.add("!bibtex", resolve_load_bibtex)
+            raise ValueError(f"Invalid value for !bibtex: {value}")
+    fn = Path(loader.path).parent / fn if loader.path else Path(fn)
+    loader.add_source(fn)
+    return load_bibtex(fn, modify_data=modify_data)
 
 
 def fill_name(person: dict[str, str]) -> str:

@@ -6,7 +6,7 @@ from sratic.objects import ObjectStore
 
 
 def fragment(path: str, data: dict) -> YAMLFragment:
-    return YAMLFragment(None, Path(path), data)
+    return YAMLFragment(Path(path), data)
 
 
 class ObjectStoreTests(unittest.TestCase):

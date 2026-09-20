@@ -19,13 +19,14 @@ from urllib.parse import quote_plus
 
 import markdown
 import markdown.extensions.attr_list
+import yaml
 
 __src_dir__ = Path(__file__).parent
 
 sys.path.append(str(__src_dir__.parent))
-import sratic.bibliography  # noqa: F401
-from sratic.metadata import Constructor, Replace, YAMLDataFactory, YAMLFragment
-from sratic.objects import ObjectStore
+from sratic.bibliography import resolve_load_bibtex
+from sratic.metadata import YAMLFragment, YAMLLoader, YAMLParser
+from sratic.objects import ObjectStore, resolve_load_csv
 from sratic.remote import ObjectExporter
 from sratic.schedule_table import ScheduleExtension, schedule_table
 from sratic.tmpl_jinja import SRAticEnvironment
@@ -53,9 +54,13 @@ class Generator:
         self.template_paths.extend(self.source_directory.glob("*/__templates"))
         self.options = options
 
-        self.yaml_data_factory = YAMLDataFactory(None)
-        # Register before loading data, which may contain !markdown tags.
-        Constructor.add("!markdown", self.resolve_markdown_constructor)
+        self.yaml_data_factory = YAMLParser(
+            {
+                "!csv": resolve_load_csv,
+                "!bibtex": resolve_load_bibtex,
+                "!markdown": self.resolve_markdown_constructor,
+            }
+        )
         schema_fn = Path.cwd() / "data" / "schema.yml"
         if not schema_fn.exists():
             schema_fn = __src_dir__ / "data" / "schema.yml"
@@ -181,16 +186,13 @@ class Generator:
 
         return content
 
-    def resolve_markdown_constructor(
-        self,
-        fragment: YAMLFragment,
-        ctx: Constructor,
-    ) -> Replace:
+    def resolve_markdown_constructor(self, loader: YAMLLoader, node: yaml.Node) -> str:
         """This is used for the !markdown constructor, which is used to
         preprocess a string field as markdown.
         """
-        assert type(ctx.value) is str
-        return Replace(self.markdown(ctx.value))
+        value = loader.construct_scalar(node)
+        assert type(value) is str
+        return self.markdown(value)
 
     def check_dependencies(self, page: YAMLFragment, target: Path) -> bool:
         """Check if the target file `target` has to be rebuild.
