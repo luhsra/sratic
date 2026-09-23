@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import dateutil
 import yaml
 
 from .metadata import YAMLFragment, YAMLLoader
@@ -262,8 +261,8 @@ class ObjectStore:
 
     def __reference(self, obj: dict[str, Any]) -> None:
         """Mark the object as referenced"""
-        if self.__referenced_objects is not None and obj.get("id"):
-            self.__referenced_objects.add(obj["id"])
+        if self.__referenced_objects is not None and (id := obj.get("id")):
+            self.__referenced_objects.add(id)
 
     def canonical_id(self, obj: dict[str, Any]) -> str:
         """Canonical ascii-only id for use in CSS classes"""
@@ -578,8 +577,8 @@ class ObjectStore:
             ("Sommer" if semester[0] == "s" else "Winter") + " 20" + semester[2:]
         )
         obj["series"] = series
-        obj["parent"] = "lehre-" + semester
-        obj["modkat"] = "modkat-" + semester + "-" + series
+        obj["parent"] = f"lehre-{semester}"
+        obj["modkat"] = f"modkat-{semester}-{series}"
 
     @staticmethod
     def __init__thesis(obj: dict[str, Any]) -> None:
@@ -596,9 +595,6 @@ class ObjectStore:
 
         Return the submenu as a list. If no such page is found, an empty list
         is returned.
-
-        Arguments:
-        page -- the current page
         """
         p = self.deref(page)
         while p:
@@ -612,12 +608,8 @@ class ObjectStore:
 
     @staticmethod
     def get_rfc3339_timestamp() -> str:
-        """Return an RFC 3339 timestamp.
-
-        Note, this works only with Python 3.3+.
-        """
-        now = datetime.datetime.now().astimezone()
-        return now.isoformat()
+        """Return an RFC 3339 timestamp."""
+        return datetime.datetime.now().isoformat()
 
     @staticmethod
     def uuid(text: str) -> libuuid.UUID:
@@ -682,8 +674,7 @@ class ObjectStore:
             ):
                 ret.append(obj)
                 captured.add(id(obj))
-        for obj in ret:
-            self.__reference(obj)
+                self.__reference(obj)
         return self.sorted(ret)
 
     def sorted(self, elem: list[dict[str, Any]], **kwargs: Any) -> list[dict[str, Any]]:
@@ -691,44 +682,10 @@ class ObjectStore:
             if type(x) is not dict:
                 return x
             if self.isA(x, "publication"):
-                year = int(x["bibtex"].get("year", "0"))
-                month = x["bibtex"].get("month", "1")
-                day = x["bibtex"].get("day", "1")
-                date = x["bibtex"].get("date", None)
-                if month.isdigit():
-                    month = int(month)
-                else:
-                    # fmt: off
-                    months = [
-                        "jan", "feb", "mar", "apr", "may", "jun",
-                        "jul", "aug", "sep", "oct", "nov", "dec"
-                    ]
-                    # fmt: on
-                    try:
-                        month = months.index(month.lower()[:3]) + 1
-                    except ValueError:
-                        pass
-
-                if day.isdigit():
-                    day = int(day)
-                else:
-                    day = 0
-
-                dt = None
-                if date is not None:
-                    try:
-                        dtdef = datetime.date(year, month, day)
-                        dt = dateutil.parser.parse(date, default=dtdef)
-                        year = dt.year
-                        month = dt.month
-                        date = dt.day
-                    except ValueError as e:
-                        logging.warning("date invalid! %s\n%s", e, x)
-
+                # alredy parsed in bibliography.py
+                p = x["bibtex"]["parsed_date"]
                 return (
-                    str(10000 - year)
-                    + str(100 - month - 1)
-                    + str(100 - day - 1)
+                    f"{9999 - p.year}{99 - p.month}{99 - p.day}"
                     + x.get("title", "")
                     + x["id"]
                 )

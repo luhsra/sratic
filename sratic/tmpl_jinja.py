@@ -47,8 +47,7 @@ class YamlExtension(Extension):
 
 class SRAticEnvironment(Environment):
     def __init__(self, template_paths: list[Path]) -> None:
-        Environment.__init__(
-            self,
+        super().__init__(
             trim_blocks=True,
             lstrip_blocks=True,
             loader=FileSystemLoader(

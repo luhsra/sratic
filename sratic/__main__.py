@@ -54,7 +54,7 @@ class Generator:
         self.template_paths.extend(self.source_directory.glob("*/__templates"))
         self.options = options
 
-        self.yaml_data_factory = YAMLParser(
+        self.yaml_parser = YAMLParser(
             {
                 "!csv": resolve_load_csv,
                 "!bibtex": resolve_load_bibtex,
@@ -64,8 +64,8 @@ class Generator:
         schema_fn = Path.cwd() / "data" / "schema.yml"
         if not schema_fn.exists():
             schema_fn = __src_dir__ / "data" / "schema.yml"
-        self.schema = self.yaml_data_factory.load_file(schema_fn)
-        self.data_dir = self.yaml_data_factory.load_file(Path("data/root.yml"))
+        self.schema = self.yaml_parser.load_file(schema_fn)
+        self.data_dir = self.yaml_parser.load_file(Path("data/root.yml"))
 
         # Imported modules
         module_files = {
@@ -523,7 +523,7 @@ def main() -> NoReturn:
                 has_prematter = fd.read(3) == b"---"
 
             if ext in [".md", ".page"] or (has_prematter and ext in [".xml"]):
-                page = gen.yaml_data_factory.load_file(fn)
+                page = gen.yaml_parser.load_file(fn)
                 for name, value in (
                     env_globals["data"]["site"].get("default_page", {}).items()
                 ):

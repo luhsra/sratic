@@ -1,12 +1,15 @@
+import datetime
 import json
 import logging
 import platform
+import re
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 from urllib import request
 
+import dateutil.parser
 import yaml
 
 from .metadata import YAMLLoader
@@ -85,10 +88,13 @@ def load_bibtex(
             else:
                 cur[key] = value
         cur["type"] = "bibtex"
+        cur["parsed_date"] = extract_date(cur)
+
         if modify_data:
             for k, v in modify_data.items():
                 if k not in cur:
                     cur[k] = v
+
         curated["entries"].append(cur)
     return curated
 
@@ -141,3 +147,58 @@ def download_bib2json(name: str, path: Path) -> None:
     logging.info("GET %s", url)
     request.urlretrieve(url, path)
     path.chmod(0o755)
+
+
+def extract_date(bibtex: dict) -> datetime.date:
+    date = (
+        bibtex.get("date")
+        or bibtex.get("issue_date")
+        or bibtex.get("eventdate")
+        or bibtex.get("urldate")
+    )
+
+    if date is not None:
+        if "/" in date:
+            date, _ = date.split("/", maxsplit=1)
+        date = date.replace("~", " ")
+        try:
+            return dateutil.parser.parse(date).date()
+        except ValueError as e:
+            logging.error(f"Failed to parse date of {bibtex['id']}: {e}")
+
+    year = bibtex.get("year")
+    if year is not None:
+        year = year[: min(len(year), 4)]
+
+    # Fallback to year in id
+    if (year is None or not year.isdigit()) and (
+        m := re.search(r":(\d\d)(:|$)", bibtex["id"])
+    ):
+        year = 2000 + int(m.group(1))
+        if year > datetime.date.today().year:
+            year -= 100
+
+    if year is None or (year is str and not year.isdigit()):
+        if bibtex["ENTRYTYPE"] != "misc":
+            logging.error(f"Missing date {bibtex['id']} - {bibtex['ENTRYTYPE']}")
+        return datetime.date(datetime.MINYEAR, 1, 1)
+
+    year = int(year)
+    month = bibtex.get("month", "1")
+    day = bibtex.get("day", "1")
+    if month.isdigit():
+        month = int(month)
+    else:
+        # fmt: off
+        months = [
+            "jan", "feb", "mar", "apr", "may", "jun",
+            "jul", "aug", "sep", "oct", "nov", "dec"
+        ]
+        # fmt: on
+        try:
+            month = months.index(month.lower()[:3]) + 1
+        except ValueError:
+            month = 1
+
+    day = int(day) if day.isdigit() else 1
+    return datetime.date(year, month, day)
